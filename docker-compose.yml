@@ -1,33 +1,49 @@
-version: '3.4'
+version: '3.7'
 services:
   solr:
     image: solr:latest
-    container_name: xckan-solr
+    container_name: xckan-docker-solr
     environment:
       VERBOSE: "no"
     ports:
       - "28983:8983"
     volumes:
-      - ./volumes/solr:/var/solr
+      - solr_volume:/var/solr
     command:
       - solr-precreate
       - ckan-xsearch
+
   backend:
-    build: ./backend
-    container_name: xckan-backend
+    build:
+      context: ./backend
+      args:
+        XCKAN_ZIP_URL: https://www2.info-proto.com/xckan/ckan-xsearch-develop.zip
+    container_name: xckan-docker-backend
     ports:
       - "25000:5000"
     depends_on:
       - "solr"
     volumes:
-      - ./volumes/backend_conf:/conf
-      - ./volumes/backend_cache:/cache
+      - backend_volume:/ext
+    environment:
+      DJANGO_SUPERUSER_USERNAME: xckan-docker
+      DJANGO_SUPERUSER_PASSWORD: xckan-docker
+      DJANGO_SUPERUSER_EMAIL: xckan-docker@example.com
+
   frontend:
-    build: ./frontend
-    container_name: xckan-frontend
+    build:
+      context: ./frontend
+      args:
+        SERVER_HOST: 0.0.0.0
+        BACKEND_API: "${BACKEND_API}"
+        API_LOG: 0
+    container_name: xckan-docker-frontend
     ports:
       - "23000:3000"
     volumes:
-      - frontend_volume:/home/node/app/sip2-ckan/node_modules
+      - node_modules:/home/node/app/sip2-ckan/node_modules
+
 volumes:
-  frontend_volume:
+  solr_volume: {}
+  backend_volume: {}
+  node_modules: {}

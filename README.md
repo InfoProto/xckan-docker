@@ -1,95 +1,190 @@
-# X(Cross)CKAN System
+# カタログ横断検索システム（Docker版）
 
-2020-12-09 sagara@info-proto.com
+2022-03-31 sagara@info-proto.com
 
-- Build docker images
+## このパッケージについて
 
-		sudo docker-compose build [--no-cache]
+このパッケージは、カタログ横断検索システムのフロントエンド、
+バックエンドおよび Solr を Docker 上で動作させるために必要な
+ファイル一式をまとめたものです。
 
-- Configuration
+## 使い方
 
-	Edit `volumes/backend_etc/ckanlist.json` for the CKAN sites you want to use.
-	Entries whose url fields start with `!` will be ignored.
+Docker が実行可能な環境を用意してください。
+Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
+動作確認済みです。
 
-	You can edit 'docker-compose.yml' to customize the external locations
-	of the metadata	collected by the backend and indexed by solr.
-	- `./volumes/solr`: Solr's data directory (instanceDir)
-	- `./volumes/backend_cache`: backend-harvester's file storage
+## 設定
 
-	The collected metadata is stored in these directories so that 
-	it will not be lost when you exit the docker. 
-	If you want to remove them, see the instructions below.
-	
-- Run containers
+設定は全て `docker-compose.yml` で行ないます。
+以下の項目が変更可能です。
 
-		# Make persistent directories (if not exist yet)
-		mkdir volumes/solr
-		mkdir volumes/backend_cache
-		# Allow the solr-user can write data
-		chmod -R a+w volumes/solr/
-		# Run docker-compose
-		sudo docker-compose up -d
+- Solr 管理サイトのポート : services.solr.ports
 
-- Initialization (only when launched for the first time)
+    デバッグ等の目的で利用できるよう、 Solr コンテナのポート 8983 を
+    28983 でパブリッシュしています。このポートにブラウザで外部から
+    アクセスすると、 Solr 管理ツールにアクセスできます。
 
-		# Initialize solr-schema
-		curl -X POST -H 'Content-type:application/json' --data-binary @backend/xckan-schema.json http://localhost:28983/solr/ckan-xsearch/schema
+- バックエンドサービスのポート : services.backend.ports
 
-- Run the harvester to update metadata (Anytime you want)
+    バックエンドの管理用サービスと API を提供するポート 5000 を
+    25000 でパブリッシュしています。このポートにブラウザで外部から
+    アクセスすると、収集する CKAN サイトを管理できます。
 
-		sudo docker container exec -it xckan-backend python /app/harvester/update.py
+    このポートを変更した場合は、後述するフロントエンドの設定も合わせて
+    変更してください。
 
-	If something goes wrong, execute the `update.py` script with `--debug` and
-	`--log` options.
+- バックエンド管理者アカウント : services.backend.environment
+    
+    バックエンドの管理用サービスにログインする際に必要になる
+    管理者アカウントを、 environment で設定しています。
+    `DJANGO_SUPERUSER_USERNAME` でユーザ名、
+    `DJANGO_SUPERUSER_PASSOWRD` でパスワードを指定できますので
+    必要に応じて変更してください。
 
-		sudo docker container exec -it xckan-backend python /app/harvester/update.py --debug --log=/cache/update.log
+- フロントエンドのポート : services.frontend.ports
 
-	Running the above command will output the debug logs in `volumes/backend_cache/update.log`.
+    フロントエンドの検索用画面を提供するポート 3000 を
+    23000 でパブリッシュしています。このポートにブラウザで外部から
+    アクセスすると、カタログ横断検索の検索画面が開きます。
 
-- Access to the frontend Web
+- バックエンド API の URL : services.frontend.build.args
 
-	Open `http://localhost:23000/` on the docker host.
+    ブラウザからバックエンド API にアクセスできる URL を、
+    環境変数 `BACKEND_API` で指定します。
+    指定しない場合は公開用カタログ横断検索の API
+    `https://search.ckan.jp/backend/api` を利用します。
 
-	If you want to access the frontend from a client PC other than the docker host:
+    Docker で起動したバックエンドに接続したい場合は、
+    `BACKEND_API=http://<server>:25000/api` を指定してください。
+    `<server>`は Docker サービスが動いているサーバの名前または
+    IP アドレスを指定します。
 
-	The front end assumes that the backend WebAPI server is running on localhost:25000. Therefore, change the configuration file to specify the back-end hostname (1) or use SSH tunnel (2).
+    バックエンドとフロントエンドが同じマシン上で動いているため、
+    `http://localhost:25000/api` と指定したくなると思います。
+    しかしこのように設定すると、 Docker が動いているマシン以外から
+    アクセスした場合にはブラウザを開いているサーバのポート 25000 に
+    問い合わせにいくため、正常に動作しません。
 
-	(1) The configuration files can be found in `frontend/sip2-ckan/nuxt.config.js`.
-	Replace all `localhost:25000` in the file to the correct one.
+    **注意**
 
-	(2) To create a SSH tunnel, run `ssh -N -L 25000:localhost:25000 <dockerhost>` on the PC.
+    接続するバックエンド API を変更したい場合は、以下のコマンドで
+    コンテナを再構築する必要があります。
 
-- Access Solr Admintool
+        % docker-compose down frontend  # 既に起動していた場合
+        % docker-compose build --no-cache frontend
 
-	You can access the solr admin to check the indexed raw metadata.
-	Open `http://localhost:28983/solr/` on the docker host.
+## 使い方
 
-- Use ckan-xsearch backend API
+- サービス起動
 
-	You can access the backend WebAPI server also.
+    次のコマンドでサービスを起動します。バックグラウンドで動かすので
+    `-d` を付けてください。
 
-	- List metadata
+        % docker-compose up -d
 
-		http://localhost:25000/package_list
+- 検索画面（フロントエンド）
 
-	- Show metadata
+    ブラウザで `http://<server>:23000/` を開いてください。
+    `<server>`は Docker サービスが動いているサーバの名前または
+    IP アドレスを指定します。 Docker サービスを動かしている
+    マシン上であれば `http://localhost:23000/` でアクセスできます。
 
-		http://localhost:25000/package_show?id=catalog.data.metro.tokyo.lg.jp__dataset:t000010d0000000067
+    画面上部の「データセットを検索」と表示されている欄に
+    キーワードを入力し、虫眼鏡のアイコンをクリックすると
+    データセットを検索することができます。
 
-	- Search metadata
+    バックエンド API の URL を設定しなかった場合は、公開用の
+    カタログ横断検索システムに接続します。 Docker で動いている
+    バックエンド API を設定した場合、最初はメタデータが
+    登録されていないため、「0件のデータが見つかりました」という
+    表示になります。
 
-		http://localhost:25000/package_search?q=%E6%96%B0%E5%9E%8B%E3%82%B3%E3%83%AD%E3%83%8A&start=0&rows=50&sort=score+desc
+- サイト管理画面（バックエンド）
 
-- Stop containers
+    ブラウザで `http://<server>:25000/` を開いてください。
+    `<server>`は Docker サービスが動いているサーバの名前または
+    IP アドレスを指定します。 Docker サービスを動かしている
+    マシン上であれば `http://localhost:25000/` でアクセスできます。
+    
+    右上隅の "ログイン" リンクをクリックし、バックエンド管理者アカウントの
+    ユーザ名とパスワードを入力します。 `docker-compose.yml` を
+    変更していない場合、ユーザ名もパスワードも `xckan-docker` です。
 
-		sudo docker-compose down
+    ログインできたら、トップメニューの "CKANサイト一覧" リンクを
+    クリックしてください。ここに登録済みのサイト一覧が表示されます。
 
-- Remove metadata
+    左上隅の "インポート" ボタンを押し、この README と同じ
+    ディレクトリにある `xckan_sitelist.json` ファイルを
+    アップロードして、サイトを一括登録できます。
 
-	Stop containers then remove `volumes/backend_cache/` and `volumes/solr/`.
+    個別に登録したい場合は、右上の "管理サイト" リンクから
+    「Django 管理サイト」に移動してください。ここでサイトや
+    ユーザの登録や編集を行なうことができます。
 
-		sudo rm -rf volumes/backend_cache/ volumes/solr/
+    インポートしたサイトは念のため更新不可の状態になっています。
+    一覧から任意のサイトを選択し、"検査" ボタンを押してください。
+    そのサイトがアクセス可能であれば、更新可能に設定されます。
+    
+    更新開始日時や更新間隔を変更したい場合は ”管理" ボタンから
+    Django 管理サイトに移動できます。
 
-	If you want to run it again, follow the `Run containers` procedure to create the directories.
+- サイトメタデータの更新（任意の時点で）
 
-	Since the Solr schema is also gone, run the `Initialization` step as well.
+    サイトを登録し、更新可能に設定したら、いつでもメタデータを収集して
+    インデックスを更新できます。以下のコマンドを実行してください。
+
+        % docker-compose exec -it backend python manage.py runscript update
+
+    定期的に更新するには、 cron などで一定時間ごとにこのコマンドを
+    実行する必要があります。
+
+- ログファイルの確認
+
+    本システム実行中に発生したエラーや、更新時のログは
+    以下のパスに生成されるファイルに保存されます。
+
+        ckan-xsearch/django-backend/xckan/logs/xckan.log
+
+    ログの出力レベルやフォーマットを変更したい場合は
+    以下のパスにある設定ファイルを編集してください。
+
+        ckan-xsearch/django-backend/xckan/logging.json
+
+- Solr 管理ツール
+
+    通常利用する必要はありませんが、 Solr に登録されている生のデータや
+    検索結果を確認したい場合には、 Solr 管理ツールにアクセスできます。
+
+    `http://<server>:28983/solr/` を開いて左側のメニューにある
+    "Core Selecter" で `ckan-xsearch` を選択してください。
+
+- 横断検索システム API
+
+    横断検索システムの API は以下の URL でアクセスできます。
+
+    - List metadata: 登録済みメタデータの ID リストを返します
+
+        http://<server>:25000/api/package_list
+
+    - Show metadata: 指定した ID を持つメタデータの詳細を返します
+
+        http://localhost:25000/api/package_show?id=<id>
+
+    - Search metadata: 条件に合致するメタデータのリストを返します
+
+        http://localhost:25000/api/package_search?q=%E6%96%B0%E5%9E%8B%E3%82%B3%E3%83%AD%E3%83%8A&start=0&rows=50&sort=score+desc
+
+- サービスの停止
+
+    次のコマンドで、バックグラウンドで動いているサービスを停止します。
+
+        % docker-compose down
+
+- サービスの再起動
+
+    一度停止したサービスを再起動する場合は以下のコマンドを実行するだけで、
+    それ以外の手順は必要ありません。
+
+        % docker-compose up -d
+
