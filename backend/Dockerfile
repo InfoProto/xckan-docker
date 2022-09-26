@@ -4,12 +4,14 @@ EXPOSE 5000
 
 # Set up base platform
 ENV LC_CTYPE=C.UTF-8
-RUN apk update
+RUN apk update && apk add curl
 
 # Install python environment
 RUN --mount=type=cache,target=/root/.cache \
-  pip install --upgrade pip setuptools &&
-  --mount=type=cache,target=/root/.cache \
+  pip install --upgrade pip setuptools
+WORKDIR /app
+COPY ./ckan-xsearch/requirements.txt /app/
+RUN --mount=type=cache,target=/root/.cache \
   pip install -r requirements.txt
 
 # Set up Django application
@@ -29,8 +31,7 @@ ENV DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME} \
   DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
 
 # Prepare source codes
-RUN mkdir ckan-xsearch
-COPY ./ckan-xsearch /app/ckan-xsearch
+COPY . /app/
 
 # Run script
 WORKDIR /app/ckan-xsearch/django-backend

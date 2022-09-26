@@ -6,6 +6,8 @@ EXPOSE 3000
 RUN apk --no-cache add --update python3 make g++ curl
 
 # Prepare node modules
+RUN mkdir -p /home/node
+COPY ./app /home/node/app
 WORKDIR /home/node/app/sip2-ckan/
 RUN --mount=type=cache,target=/root/.npm npm install
 
@@ -16,10 +18,6 @@ ARG API_LOG
 RUN echo "SERVER_HOST: $SERVER_HOST"
 RUN echo "BACKEND_API: $BACKEND_API"
 RUN echo "API_LOG: $API_LOG"
-
-# Place files
-RUN mkdir -p /home/node
-copy ./app /home/node/app
 
 # Build and start
 RUN ["npm", "run", "build"]
