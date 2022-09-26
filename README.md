@@ -256,3 +256,15 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
 
 - [ckan-xsearch 0.9.20220328](https://github.com/NII-CPS-Center/ckan-xsearch/releases/tag/v0.9.20220328)
 - [sip2ckan 0.9.20220328](https://github.com/NII-CPS-Center/sip2-ckan/releases/tag/v0.9.20220328)
+
+
+## エラー発生時の対処法
+
+- Windows の Docker desktop で実行時に syntax error が発生する場合
+
+        /tmp/entrypoint.sh: line 27: syntax error: unexpected end of file (expecting "then")
+
+    git から取得する際にスクリプトの改行コードが LF から CRLF に
+    自動変換されてしまうことが原因なので、自動変換をオフにしてください。
+
+        git config --global core.autocrlf input

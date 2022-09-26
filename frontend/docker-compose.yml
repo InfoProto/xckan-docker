@@ -1,0 +1,13 @@
+version: '3.7'
+services:
+  app:
+    build: ./app
+    image: sip2-ckan:develop
+    ports:
+      - 3000:3000
+    tty: true
+    volumes:
+      - ./app:/home/node/app
+      - app_node_modules:/home/node/app/sip2-ckan/node_modules
+volumes:
+  app_node_modules:

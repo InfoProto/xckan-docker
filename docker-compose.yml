@@ -16,8 +16,8 @@ services:
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
       args:
-        XCKAN_BACKEND_SRC: https://www2.info-proto.com/xckan/ckan-xsearch-0.9.20220328.tar.gz
         DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-xckan-docker}
         DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-xckan-docker}
         DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-xckan-docker@example.com}
@@ -34,8 +34,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
       args:
-        XCKAN_FRONTEND_SRC: https://www2.info-proto.com/xckan/sip2-ckan-0.9.20220328.tar.gz
         SERVER_HOST: ${FRONTEND_HOSTS:-0.0.0.0}
         BACKEND_API: ${BACKEND_API:-http://localhost:25000/api}
         API_LOG:

@@ -1,0 +1,27 @@
+version: '3.4'
+services:
+  solr:
+    image: solr:latest
+    container_name: xckan-solr
+    environment:
+      VERBOSE: "no"
+    ports:
+      - "28983:8983"
+    volumes:
+      - ./volumes/solr:/var/solr
+    command:
+      - solr-precreate
+      - ckan-xsearch
+  backend:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    container_name: xckan-backend
+    ports:
+      - "25000:5000"
+    depends_on:
+      - "solr"
+    volumes:
+      - ../django-backend:/app
+      - ./volumes/backend_db:/data
+      - ./volumes/backend_cache:/cache
