@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   solr:
-    image: solr:latest
+    image: solr:8.11.2
     container_name: xckan-docker-solr
     environment:
       VERBOSE: "no"
@@ -11,7 +11,7 @@ services:
       - type: volume
         source: solr_volume
         target: /var/solr
-    command:
+    command: 
       - solr-precreate
       - ckan-xsearch
 
@@ -44,14 +44,9 @@ services:
         BACKEND_API: ${BACKEND_API:-http://localhost:25000/api}
         API_LOG:
     container_name: xckan-docker-frontend
-    volumes:
-      - type: volume
-        source: frontend_node_modules
-        target: /home/node/app/sip2-ckan/node_modules
     ports:
       - "23000:3000"
 
 volumes:
   solr_volume: {}
   backend_volume: {}
-  frontend_node_modules: {}

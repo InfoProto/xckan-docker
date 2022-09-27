@@ -1,6 +1,6 @@
 # カタログ横断検索システム（Docker版）
 
-2022-03-31 sagara@info-proto.com
+2022-09-30 sagara@info-proto.com
 
 ## このパッケージについて
 
@@ -9,8 +9,8 @@
 ファイル一式をまとめたものです。
 
 Docker が実行可能な環境を別途用意してください。
-Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
-動作確認済みです。
+Windows および MacOS の Docker Desktop 4.6.1,
+Ubuntu の Docker version 20.10.18 で動作確認済みです。
 
 ## 使い方
 
@@ -19,7 +19,15 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     次のコマンドでサービスを起動します。バックグラウンドで動かすので
     `-d` を付けてください。
 
-        % docker-compose up -d
+        % docker compose up -d
+
+    Ubuntu で実行する場合、 docker の設定によっては
+    root 権限が必要な場合があります。その場合は sudo 権限を持つ
+    アカウントで `docker compose` の前に `sudo` を付けてください。
+
+        % sudo docker compose up -d
+
+    以下の説明では単に `docker compose` と表記します。
 
 - 検索画面（フロントエンド）
 
@@ -32,10 +40,8 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     キーワードを入力し、虫眼鏡のアイコンをクリックすると
     データセットを検索することができます。
 
-    バックエンド API の URL を設定しなかった場合は、 localhost 上の
-    カタログ横断検索システムに接続します。最初はメタデータが
-    登録されていないため、「0件のデータが見つかりました」という
-    表示になります。
+    最初はメタデータが登録されていないため、
+    「0件のデータが見つかりました」という表示になります。
 
 - サイト管理画面（バックエンド）
 
@@ -50,10 +56,11 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
 
     ログインできたら、トップメニューの "CKANサイト一覧" リンクを
     クリックしてください。ここに登録済みのサイト一覧が表示されます。
+    最初は「(サイトが登録されていません)」と表示されるはずです。
 
-    左上隅の "インポート" ボタンを押し、この README と同じ
+    左上隅の "インポート" ボタンを押し、 `backend`
     ディレクトリにある `xckan_sitelist.json` ファイルを
-    アップロードして、サイトを一括登録できます。
+    アップロードすると、サイトを一括登録できます。
 
     個別に登録したい場合は、右上の "管理サイト" リンクから
     「Django 管理サイト」に移動してください。ここでサイトや
@@ -63,7 +70,7 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     一覧から任意のサイトを選択し、"検査" ボタンを押してください。
     そのサイトがアクセス可能であれば、更新可能に設定されます。
     
-    更新開始日時や更新間隔を変更したい場合は ”管理" ボタンから
+    更新開始日時や更新間隔を変更したい場合は "管理" ボタンから
     Django 管理サイトに移動できます。
 
 - サイトメタデータの更新（任意の時点で）
@@ -71,7 +78,7 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     サイトを登録し、更新可能に設定したら、メタデータを収集して
     インデックスを更新します。以下のコマンドを実行してください。
 
-        % docker-compose exec backend python manage.py runscript update
+        % docker compose exec backend python manage.py runscript update
 
     CKANサイトにアタックをかけられていると誤解されないように、
     メタデータの取得は1秒に1件に制限していますので、時間がかかります。
@@ -83,7 +90,7 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
 
     次のコマンドで、バックグラウンドで動いているサービスを停止します。
 
-        % docker-compose down
+        % docker compose down
 
 - サービスの再起動
 
@@ -93,7 +100,15 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     これらのボリュームを削除しなければサービスの停止・再起動を
     行なっても失われません。
 
-        % docker-compose up -d
+        % docker compose up -d
+
+- 収集したメタデータの削除
+
+    何らかの理由で収集したメタデータを削除したい場合、
+    `backend_volume` と `solr_volume` を削除してから再起動してください。
+
+        % docker compose down -v
+        % docker compose up -d
 
 基本的な使い方は以上です。
 
@@ -109,8 +124,10 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     デバッグ等の目的で利用できるよう、 Solr コンテナのポート 8983 を
     28983 でパブリッシュしています。このポートにブラウザで外部から
     アクセスすると、 Solr 管理ツールにアクセスできます。
+    Solr 管理ツールの使い方については、公式サイトの
+    [Overview of the Solr Admin UI](https://solr.apache.org/guide/8_11/overview-of-the-solr-admin-ui.html) を参照してください。
 
-    もし既に Docker サービス上で 28983 を利用する他のサービスが
+    もし既にサーバ上で 28983 を利用する他のサービスが
     動いていて利用できない場合、他の空いているポートに変更してください。
     Solr には backend サービスがアクセスしますが、Docker の
     仮想ネットワークを利用するため、変更しても影響ありません。
@@ -121,8 +138,8 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     変更した場合、サービスを停止し、再起動してください。
     イメージを作り直す必要はありません。
 
-        % docker-compose down
-        % docker-compose up -d
+        % docker compose down
+        % docker compose up -d
 
 - バックエンドサービスのポート : services.backend.ports
 
@@ -131,7 +148,10 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     アクセスすると、収集する CKAN サイトを登録したり変更するための
     管理画面にアクセスできます。
 
-    値を変更した場合は、「バックエンド API の URL」も必ず変更してください。
+    また、このサービスはフロントエンドが利用する API も提供します。
+    そのためこの値を変更した場合は、「フロントエンドの初期設定」の
+    `BACKEND_API` も変更し、手順に従ってフロントエンドをビルド
+    し直す必要があります。
 
 - バックエンドの初期設定 : services.backend.args
 
@@ -144,15 +164,15 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     これらの値は最初にコンテナを作成するときに参照され、
     `backend_volume` 上に作成されるデータベースに保存されます。
     そのためこれらの値を変更してコンテナを再起動しても
-    サービスの挙動は変わりません。
+    管理者のユーザ名やパスワードは変わりません。
 
     `backend_volume` を削除してからサービスを再起動すれば
     変更が反映されますが、登録したサイトリストなども失われます。
 
-    もしパスワードを忘れた等の理由でパスワードを変更したい場合は、
-    次のコマンドを利用してください。
+    もしパスワードを忘れた等の理由で、管理者パスワードを
+    変更したいという場合は、次のコマンドを利用してください。
 
-        % docker-compose exec backend python manage.py \
+        % docker compose exec backend python manage.py \
         changepassword xckan-docker
 
 - バックエンド環境変数 : services.backend.environment
@@ -166,8 +186,8 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     サービスを再起動してください。
 
         % export XCKAN_ALLOWED_HOSTS='*'
-        % docker-compose down
-        % docker-compose up -d
+        % docker compose down
+        % docker compose up -d
 
 - フロントエンドサービスのポート : services.frontend.ports
 
@@ -201,9 +221,22 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
 
         % export XCKAN_ALLOWED_HOSTS='*'
         % export BACKEND_API=http://mydocker.server.name:25000/api
-        % docker-compose down
-        % docker-compose build frontend
-        % docker-compose up -d
+        % docker compose down
+        % docker compose build frontend
+        % docker compose up -d
+
+- `.env` ファイルの利用
+
+    環境変数を毎回設定する代わりに、この README.md ファイルと同じ
+    ディレクトリに `.env` ファイルを作成し、環境変数を定義しておくと
+    docker compose コマンドを実行するときに自動的に読み込みます。
+
+        (.env の例)
+        XCKAN_ALLOWED_HOSTS=*
+        BACKEND_API=http://xckan-dev:25000/api
+        DJANGO_SUPERUSER_USERNAME=xckan
+        DJANGO_SUPERUSER_PASSWORD=xckan
+
 
 ## 補足情報
 
@@ -222,13 +255,6 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     サイトから収集したメタデータは `backend_volume` の
     `cache/` ディレクトリに保存されています。
 
-- Solr 管理ツール
-
-    通常利用する必要はありませんが、 Solr に登録されている生のデータや
-    検索結果を確認したい場合には、 Solr 管理ツールにアクセスできます。
-
-    `http://<server>:28983/solr/` を開いて左側のメニューにある
-    "Core Selecter" で `ckan-xsearch` を選択してください。
 
 - 横断検索システム API
 
@@ -240,7 +266,7 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
 
     - Show metadata: 指定した ID を持つメタデータの詳細を返します
 
-        http://localhost:25000/api/package_show?id=<id>
+        http://localhost:25000/api/package_show?id=&lt;id&gt;
 
     - Search metadata: 条件に合致するメタデータのリストを返します
 
@@ -249,22 +275,3 @@ Windows 10 および MacOS 12.1 の Docker Desktop 4.6.1 で
     Docker サービスが動いているマシン以外からAPIにアクセスしたい場合は、
     「設定」セクションの「バックエンド環境変数」を参照し、
     バックエンドに外部からアクセスできるように設定を変更してください。
-
-## 対応バージョン
-
-このパッケージは、以下のバージョンで動作確認しています。
-
-- [ckan-xsearch 0.9.20220328](https://github.com/NII-CPS-Center/ckan-xsearch/releases/tag/v0.9.20220328)
-- [sip2ckan 0.9.20220328](https://github.com/NII-CPS-Center/sip2-ckan/releases/tag/v0.9.20220328)
-
-
-## エラー発生時の対処法
-
-- Windows の Docker desktop で実行時に syntax error が発生する場合
-
-        /tmp/entrypoint.sh: line 27: syntax error: unexpected end of file (expecting "then")
-
-    git から取得する際にスクリプトの改行コードが LF から CRLF に
-    自動変換されてしまうことが原因なので、自動変換をオフにしてください。
-
-        git config --global core.autocrlf input
