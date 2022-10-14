@@ -127,7 +127,7 @@ class Site:
                 from_proxy = True
             except (urllib.error.HTTPError, urllib.error.URLError,
                     socket.timeout) as e:
-                logger.error(str(e) + "while accessing proxy {}".format(url))
+                logger.error(str(e) + "while accessing proxy '{}'".format(url))
                 return False
 
         if not from_proxy:
@@ -135,10 +135,11 @@ class Site:
             url = self.get_api() + 'package_list'
             try:
                 response = urllib.request.urlopen(url, None, 10)
+                from_proxy = False
             except (urllib.error.HTTPError, urllib.error.URLError,
                     socket.timeout) as e:
                 logger.error(
-                    str(e) + " while accessing {}".format(url)
+                    str(e) + " while accessing '{}'".format(url)
                 )
                 return False
 
@@ -180,11 +181,11 @@ class Site:
             url = self.proxy + 'package_show?id=' + urllib.parse.quote(
                 site_id + ':' + package_id)
             try:
-                response = urllib.request.urlopen(url)
+                response = urllib.request.urlopen(url, None, 10)
                 from_proxy = True
             except Exception as e:
                 logger.error(
-                    str(e) + " while accessing proxy {}".format(url))
+                    str(e) + " while accessing proxy '{}'".format(url))
                 return False
 
         if not from_proxy:
@@ -192,11 +193,11 @@ class Site:
                 package_id)
 
             try:
-                response = urllib.request.urlopen(url)
+                response = urllib.request.urlopen(url, None, 10)
+                from_proxy = False
             except Exception as e:
                 logger.error(
-                    str(e) + " while accessing {}".format(url)
-                )
+                    str(e) + " while accessing '{}'".format(url))
                 return False
 
         body = response.read()
@@ -273,15 +274,12 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(url)
+                    response = urllib.request.urlopen(url, None, 10)
                     from_proxy = True
-                except urllib.error.HTTPError as e:
-                    if True or from_proxy is True:
-                        logger.error(
-                            str(e) + " while accessing proxy '{}'".format(url))
-                        return False
-
-                    from_proxy = False
+                except Exception as e:
+                    logger.error(
+                        str(e) + " while accessing proxy '{}'".format(url))
+                    return False
 
             if from_proxy is None or from_proxy is False:
                 query = {
@@ -294,9 +292,9 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(url)
+                    response = urllib.request.urlopen(url, None, 10)
                     from_proxy = False
-                except urllib.error.HTTPError as e:
+                except Exception as e:
                     logger.error(
                         str(e) + " while accessing '{}'".format(url))
                     return False
