@@ -56,11 +56,11 @@ class SiteUpdater:
         now = datetime.datetime.now(timezone('UTC'))
         for site_setting in self.__settings:
             if not site_setting.update_interval or \
-               not site_setting.update_start_datetime or \
-               not site_setting.update_time:
+               not site_setting.update_start_datetime:
                 continue
 
-            next_update_time = site_setting.update_time
+            next_update_time = site_setting.update_time or \
+                site_setting.update_start_datetime
             message = "{}: Next update at {}".format(
                 site_setting, next_update_time.isoformat())
             if now >= next_update_time:
@@ -77,11 +77,11 @@ class SiteUpdater:
 
         for site_setting in self.__settings:
             if not site_setting.full_update_interval or \
-               not site_setting.full_update_start_datetime or \
-               not site_setting.full_update_time:
+               not site_setting.full_update_start_datetime:
                 continue
 
-            next_update_time = site_setting.full_update_time
+            next_update_time = site_setting.full_update_time or \
+                site_setting.full_update_start_datetime
             message = "{}: Next full update at {}".format(
                 site_setting, next_update_time.isoformat())
             if now >= next_update_time:

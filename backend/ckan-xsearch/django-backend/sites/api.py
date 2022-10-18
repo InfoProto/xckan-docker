@@ -159,7 +159,8 @@ class Api(object):
                     "res_format",
                     "tags",
                     "groups"
-                ]
+                ],
+                "facet.mincount": 1
             }
         )
         datasets = self.__solr_to_ckan(results)
@@ -184,6 +185,7 @@ class Api(object):
         results = self.__get_solr().search('*:*', **{
             "facet": "on",
             "facet.field": ["xckan_site_name"],
+            "facet.mincount": 1,
             "rows": 0
         })
         resp = results.raw_response
