@@ -1,0 +1,115 @@
+{
+    "executionRoleArn": "$EXECUTION_ROLE_ARN",
+    "containerDefinitions": [
+        {
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-region": "${REGION}",
+                    "awslogs-group": "/ecs/${PRODUCT_NAME}/backend-task",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "portMappings": [
+                {
+                    "hostPort": 5000,
+                    "protocol": "tcp",
+                    "containerPort": 5000
+                }
+            ],
+            "environment": [
+                {
+                    "name": "XCKAN_ALLOWED_HOSTS",
+                    "value": "*"
+                },
+                {
+                    "name": "XCKAN_SOLR",
+                    "value": "http://localhost:8983/solr/ckan-xsearch"
+                }
+            ],
+            "image": "<IMAGE1_NAME>",
+            "dependsOn": [
+                {
+                    "containerName": "solr",
+                    "condition": "START"
+                }
+            ],
+            "readonlyRootFilesystem": false,
+            "mountPoints": [
+                {
+                    "readOnly": null,
+                    "containerPath": "/ext",
+                    "sourceVolume": "django_volume"
+                }
+            ],
+            "name": "django"
+        },
+        {
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-region": "${REGION}",
+                    "awslogs-group": "/ecs/${PRODUCT_NAME}/backend-task",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "entryPoint": null,
+            "portMappings": [
+                {
+                    "hostPort": 8983,
+                    "protocol": "tcp",
+                    "containerPort": 8983
+                }
+            ],
+            "command": [
+                "solr-precreate",
+                "ckan-xsearch"
+            ],
+            "environment": [
+                {
+                    "name": "VERBOSE",
+                    "value": "no"
+                }
+            ],
+            "image": "${INIT_ECR_URL}:${TASK_NAME}-solr-follower-1.0",
+            "essential": true,
+            "readonlyRootFilesystem": false,
+            "name": "solr"
+        }
+    ],
+    "taskRoleArn": "$TASK_ROLE_ARN",
+    "family": "$TASK_NAME",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "networkMode": "awsvpc",
+    "memory": "$MEMORY",
+    "cpu": "$CPU",
+    "volumes": [
+        {
+            "name": "django_volume"
+        }
+    ],
+    "tags": [
+        {
+            "key": "Project",
+            "value": "$PROJECT_NAME"
+        },
+        {
+            "key": "Product",
+            "value": "$PRODUCT_NAME"
+        },
+        {
+            "key": "Terraform",
+            "value": "true"
+        },
+        {
+            "key": "Env",
+            "value": "$ENV"
+        },
+        {
+            "key": "Name",
+            "value": "$TASK_NAME"
+        }
+    ]
+}

@@ -1,0 +1,30 @@
+version: 0.2
+
+env:
+  variables:
+    DOCKER_BUILDKIT: "1"
+    
+phases:
+  pre_build:
+    commands:
+      - $(aws ecr get-login --region $REGION --no-include-email)
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+  build:
+    commands: >-
+      docker build ./backend
+      -t ${ECR_URL}:${IMAGE_TAG}
+      --build-arg XCKAN_BACKEND_SRC=$XCKAN_BACKEND_SRC
+      --build-arg DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_USERNAME
+      --build-arg DJANGO_SUPERUSER_PASSWORD=$DJANGO_SUPERUSER_PASSWORD
+      --build-arg DJANGO_SUPERUSER_EMAIL=$DJANGO_SUPERUSER_EMAIL
+  post_build:
+    commands:
+      - docker push ${ECR_URL}:${IMAGE_TAG}
+      - printf '{"ImageURI":"%s"}' ${ECR_URL}:${IMAGE_TAG} > imageDetail.json
+      - envsubst < aws/backend_task.json > taskdef.json
+
+artifacts:
+  files:
+    - imageDetail.json
+    - taskdef.json
