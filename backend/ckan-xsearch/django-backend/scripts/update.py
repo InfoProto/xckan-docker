@@ -195,6 +195,24 @@ class SiteUpdater:
 
         setting.save()
         logger.info("[{}] Full update done".format(site_id))
+
+        # Send notification email to the contact person.
+        if setting.notify_contact_email is True and \
+                setting.contact_email is not None:
+            try:
+                Mail.send(
+                    message=setting.result + "\n\n" + buffer.getvalue(),
+                    subject="[XCKAN] Full update result",
+                    to_addresses=[setting.contact_email])
+            except SMTPAuthenticationError as e:
+                logger.error((
+                    "Cannot connect to the SMTP server."
+                    "Please check the environmental variables.") + e)
+            except RuntimeError as e:
+                logger.error((
+                    "SMTP Host is not set."
+                    "Please set 'SMTP_HOST' environmental variable ."))
+
         return True
 
 
