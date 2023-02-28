@@ -21,7 +21,7 @@ class Site(models.Model):
         max_length=255, db_index=True, verbose_name="サイト名")
     dataset_url = models.URLField(verbose_name="データセットURL",
                                   unique=True)
-    ckanapi_url = models.URLField(verbose_name="API URL")
+    ckanapi_url = models.URLField(verbose_name="API/一覧ファイル URL")
     proxy_url = models.URLField(null=True, blank=True,
                                 verbose_name="Proxy URL")
     is_fq_available = models.BooleanField(
@@ -52,10 +52,14 @@ class Site(models.Model):
 
     contact = models.CharField(max_length=255, null=True, blank=True,
                                verbose_name="連絡先")
-    publisher = models.CharField(max_length=255, null=True, blank=True,
-                                 verbose_name="発行者")
-    publisher_url = models.URLField(null=True, blank=True,
-                                    verbose_name="発行者URL")
+    contact_email = models.EmailField(
+        null=True, blank=True, verbose_name="連絡先メール")
+    notify_contact_email = models.BooleanField(
+        default=True, null=False, verbose_name="連絡先へのメール通知")
+    publisher = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="発行者")
+    publisher_url = models.URLField(
+        null=True, blank=True, verbose_name="発行者URL")
     enable = models.BooleanField(
         default=True, null=False, verbose_name="更新実行可")
     memo = models.TextField(blank=True, verbose_name="メモ")

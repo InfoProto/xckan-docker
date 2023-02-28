@@ -9,7 +9,7 @@ if [ ! -e "/ext/init.log" ]; then
   echo "Migrating." >> /ext/init.log
   python manage.py migrate
   echo "Collecting static files." >> /ext/init.log
-  python manage.py collectstatic
+  python manage.py collectstatic --noinput
   echo "Creating superuser." >> /ext/init.log
   python manage.py createsuperuser --noinput
   echo "Creating collection." >> /ext/init.log

@@ -300,6 +300,20 @@ def validate_json_response(url):
     return output
 
 
+def validate_opendatalist(url):
+    output = {'success': False, 'message': ''}
+    with requests.Session() as session:
+        try:
+            resp = session.get(url, timeout=5)
+            resp.raise_for_status()
+            output['success'] = True
+        except Exception as e:
+            output['success'] = False
+            output['message'] = str(e)
+
+    return output
+
+
 @require_GET
 def site_validator(request, *args, **kwargs):
     """
@@ -316,20 +330,25 @@ def site_validator(request, *args, **kwargs):
 
     site.enable = True
 
-    # Check urls are reachable.
+    # Check the dataset url is reachable.
     result['dataset_url'] = validate_dataset(site.dataset_url)
 
-    result['package_list'] = validate_json_response(
-        site.ckanapi_url + 'package_list?limit=1')
-    if result['package_list']['success'] is True:
-        sample_id = result['package_list']['result'][0]
-        result['ckanapi_url'] = validate_json_response(
-            site.ckanapi_url + 'package_show?id={id}'.format(
-                id=sample_id))
+    # Check the api url.
+    if site.ckanapi_url.lower().endswith(('.xls', '.xlsx', '.csv')):
+        # The opendata list is provided as an list file.
+        result['ckanapi_url'] = validate_opendatalist(site.ckanapi_url)
     else:
-        result['ckanapi_url'] = {
-            'success': False, 'result': None,
-            'message': 'Failed to execute package_list API'}
+        result['package_list'] = validate_json_response(
+            site.ckanapi_url + 'package_list?limit=1')
+        if result['package_list']['success'] is True:
+            sample_id = result['package_list']['result'][0]
+            result['ckanapi_url'] = validate_json_response(
+                site.ckanapi_url + 'package_show?id={id}'.format(
+                    id=sample_id))
+        else:
+            result['ckanapi_url'] = {
+                'success': False, 'result': None,
+                'message': 'Failed to execute package_list API'}
 
     if site.proxy_url:
         result['proxy_url'] = validate_json_response(

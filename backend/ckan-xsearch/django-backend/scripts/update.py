@@ -24,11 +24,14 @@ Example:
 """
 
 import concurrent.futures
-from sites.models import Site as SiteSetting
 import datetime
+import io
 import logging
 from pytz import timezone
+from smtplib import SMTPAuthenticationError
 
+from sites.mail import Mail
+from sites.models import Site as SiteSetting
 from xckan.model.cache import CkanCache
 
 logger = logging.getLogger(__name__)
@@ -106,14 +109,6 @@ class SiteUpdater:
                 # site_id = xckan_site.get_site_id()
                 executor.submit(self.__update_site, xckan_site, setting)
 
-                # x = threading.Thread(target=self.__update_site,
-                #                      args=[xckan_site, setting])
-                # self.__threads[site_id] = x
-                # x.start()
-
-            # for site_id, thread in self.__threads.items():
-            #     thread.join()
-
         logger.info("Update (differencial) done.")
 
     def __update_site(self, xckan_site, setting):
@@ -125,8 +120,10 @@ class SiteUpdater:
         setting.result = 'Processing'
         setting.save()
 
+        buffer = io.StringIO()
+
         try:
-            result = self.__cache.update_site(xckan_site)
+            result = self.__cache.update_site(xckan_site, log=buffer)
             if result:
                 setting.result = 'OK:{}'.format(
                     datetime.datetime.now().isoformat(timespec='seconds'))
@@ -141,6 +138,24 @@ class SiteUpdater:
 
         setting.save()
         logger.info("[{}] Update done".format(site_id))
+
+        # Send notification email to the contact person.
+        if setting.notify_contact_email is True and \
+                setting.contact_email is not None:
+            try:
+                Mail.send(
+                    message=setting.result + "\n\n" + buffer.getvalue(),
+                    subject="[XCKAN] Update result",
+                    to_addresses=[setting.contact_email])
+            except SMTPAuthenticationError as e:
+                logger.error((
+                    "Cannot connect to the SMTP server."
+                    "Please check the environmental variables.") + e)
+            except RuntimeError as e:
+                logger.error((
+                    "SMTP Host is not set."
+                    "Please set 'SMTP_HOST' environmental variable ."))
+
         return True
 
     def full_update_sites(self, force=False):

@@ -1,6 +1,6 @@
 # カタログ横断検索システム（Docker版）
 
-2022-09-30 sagara@info-proto.com
+2023-02-28 sagara@info-proto.com
 
 ## このパッケージについて
 
@@ -185,9 +185,19 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
     アクセス可能にしたい場合は、次の手順で値を変更してから
     サービスを再起動してください。
 
-        % export XCKAN_ALLOWED_HOSTS='*'
+        % export XCKAN_ALLOWED_HOSTS=*
         % docker compose down
         % docker compose up -d
+
+    カタログ更新時に担当者のメールアドレスに結果通知メールを
+    送信したい場合には、以下の環境変数も必要です。
+
+    - XCKAN_SYSTEM_NAME : 通知メールに記載するシステム名
+    - XCKAN_SYSTEM_FROM : 通知メールの送信元メールアドレス
+    - SMTP_HOST : 通知メールを送信する SMTP サーバホスト名
+    - SMTP_PORT : SMPT ポート番号
+    - SMTP_USER : SMTP サーバに認証が必要な場合のユーザ名
+    - SMTP_PASS : SMTP サーバに認証が必要な場合のパスワード
 
 - フロントエンドサービスのポート : services.frontend.ports
 
@@ -219,7 +229,7 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
     `BACKEND_API` をそのサーバの API エンドポイントに変更します。
     その後、 frontend のイメージを作り直してサービスを再起動します。
 
-        % export XCKAN_ALLOWED_HOSTS='*'
+        % export XCKAN_ALLOWED_HOSTS=*
         % export BACKEND_API=http://mydocker.server.name:25000/api
         % docker compose down
         % docker compose build frontend
@@ -232,10 +242,21 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
     docker compose コマンドを実行するときに自動的に読み込みます。
 
         (.env の例)
-        XCKAN_ALLOWED_HOSTS=*
+        # Frontend settings
         BACKEND_API=http://xckan-dev:25000/api
+
+        # Backend settings
+        XCKAN_ALLOWED_HOSTS=*
         DJANGO_SUPERUSER_USERNAME=xckan
         DJANGO_SUPERUSER_PASSWORD=xckan
+
+        # Mail (SMTP) server settings
+        XCKAN_SYSTEM_NAME=xckan docker running on xckan-dev
+        XCKAN_SYSTEM_FROM=noreply@xckan.docker
+        SMTP_HOST=mysmtp.example.com
+        SMTP_PORT=465
+        SMTP_USER=smtpuser@mysmtp.example.com
+        SMTP_PASS=ThisIsMySMTPAuthPassword00
 
 
 ## 補足情報
@@ -244,13 +265,15 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
 
     本システム実行中に発生したエラーや、更新時のログは
     `backend_volume` の中の `xckan.log` ファイルに保存されます。
+    確認したい場合は次のコマンドを実行してください。
+
+        % docker compose exec backend tail /ext/xckan.log
 
     検索ログは同じボリュームの `query_log/` ディレクトリ内に生成されます。
 
-    ログの出力レベルやフォーマットを変更したい場合は、
-    backend コンテナの以下のパスにある設定ファイルを編集してください。
-
-        ckan-xsearch/django-backend/xckan/logging.json
+    ログの出力レベルやフォーマットを変更したい場合は、設定ファイル
+    `backend/ckan-xsearch/django-backend/xckan/logging.json` を編集して
+    backend コンテナを再起動してください。
 
     サイトから収集したメタデータは `backend_volume` の
     `cache/` ディレクトリに保存されています。
@@ -262,7 +285,7 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
 
     - List metadata: 登録済みメタデータの ID リストを返します
 
-        http://<server>:25000/api/package_list
+        http://&gt;server&lt;:25000/api/package_list
 
     - Show metadata: 指定した ID を持つメタデータの詳細を返します
 

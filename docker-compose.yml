@@ -32,8 +32,17 @@ services:
       - type: volume
         source: backend_volume
         target: /ext
+      - type: bind
+        source: ./backend
+        target: /app/
     environment:
       XCKAN_ALLOWED_HOSTS: ${XCKAN_ALLOWED_HOSTS:-localhost}
+      XCKAN_SYSTEM_NAME: ${XCKAN_SYSTEM_NAME}
+      XCKAN_SYSTEM_FROM: ${XCKAN_SYSTEM_FROM}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
 
   frontend:
     build:

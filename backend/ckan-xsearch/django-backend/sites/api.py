@@ -1,8 +1,11 @@
 import json
+from logging import getLogger
 
 import pysolr
 
 from xckan.siteconf import site_config
+
+logger = getLogger(__name__)
 
 
 class Api(object):
@@ -163,6 +166,7 @@ class Api(object):
                 "facet.mincount": 1
             }
         )
+        logger.warning(results)
         datasets = self.__solr_to_ckan(results)
 
         return {

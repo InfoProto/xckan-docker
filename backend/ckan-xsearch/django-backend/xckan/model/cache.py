@@ -80,7 +80,7 @@ class CkanCache:
             "package_list - id_list": add_idlist,
         }
 
-    def update_site(self, site):
+    def update_site(self, site, log=None):
         """
         Update package list and metadata of the site.
 
@@ -95,6 +95,8 @@ class CkanCache:
         ----------
         site: xckan.site.Site
             The target site.
+        log: File-like object (optional)
+            If set, output update log to here.
 
         Results
         -------
@@ -109,14 +111,14 @@ class CkanCache:
                 site.get_site_id()))
         else:
             try:
-                result = self.__update_site(site)
+                result = self.__update_site(site, log)
             finally:
                 self.__unlock_site(site)
                 logger.debug("[{}] Unlocked".format(site.get_site_id()))
 
         return result
 
-    def __update_site(self, site):
+    def __update_site(self, site, log=None):
         """
         Performing the actual update processes of the site.
 
@@ -124,6 +126,8 @@ class CkanCache:
         ----------
         site: xckan.site.Site
             The target site.
+        log: File-like object (optional)
+            If set, output update log to here.
         """
         site_id = site.get_site_id()
 
@@ -136,6 +140,13 @@ class CkanCache:
             (datetime.datetime.fromtimestamp(last_updated['update']))
             .strftime('%Y-%m-%d %H:%M:%S'),
         ))
+        if log:
+            print("Last updated = list:{}, update:{}".format(
+                (datetime.datetime.fromtimestamp(last_updated['list']))
+                .strftime('%Y-%m-%d %H:%M:%S'),
+                (datetime.datetime.fromtimestamp(last_updated['update']))
+                .strftime('%Y-%m-%d %H:%M:%S'),
+                log))
 
         # Step 1: Differential update
         # Use fq to update metadata that has been changed
@@ -185,14 +196,22 @@ class CkanCache:
             add_idlist = [id for id in package_list['result']
                           if id not in id_list]
 
-        logger.debug(
-            "[{}] added:{}".format(
-                site_id,
-                json.dumps(add_idlist, ensure_ascii=False)))
-        logger.debug(
-            "[{}] deleted:{}".format(
-                site_id,
-                json.dumps(del_idlist, ensure_ascii=False)))
+        logger.debug("[{}] added:{}".format(
+            site_id,
+            json.dumps(add_idlist, ensure_ascii=False)))
+        logger.debug("[{}] deleted:{}".format(
+            site_id,
+            json.dumps(del_idlist, ensure_ascii=False)))
+        if log:
+            print("Added: {}".format(
+                json.dumps(add_idlist, ensure_ascii=False)),
+                file=log)
+            print("Deleted: {}".format(
+                json.dumps(del_idlist, ensure_ascii=False)),
+                file=log)
+            if len(add_idlist) == 0 and len(del_idlist) == 0:
+                print("No packages were added or removed.",
+                      file=log)
 
         if len(add_idlist) > 0:
             logger.debug("[{}] Adding new datasets.".format(site_id))

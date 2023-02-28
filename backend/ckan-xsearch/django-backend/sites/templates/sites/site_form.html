@@ -127,6 +127,18 @@
                                 <span>（非公開）</span>
                                 {% endif %}
                             </div>
+                            <div class="form-row">
+                                <label class="required">{% verbose_name site 'contact_email' %}:</label>
+                                {% if user.is_authenticated and perms.sites.add_site %}
+                                <span>{{ site.contact_email }}</span>
+                                {% else %}
+                                <span>（非公開）</span>
+                                {% endif %}
+                            </div>
+                            <div class="form-row">
+                                <label class="required">{% verbose_name site 'notify_contact_email' %}:</label>
+                                <span>{{ site.notify_contact_email|yesno:'メール通知する,メール通知しない' }}</span>
+                            </div>
 
                             {% if user.is_authenticated and perms.sites.add_site %}
                                 {% for field in form %}
@@ -203,7 +215,7 @@
                 })
                 .error((errData) => {
                     if (errData.status === 401) {
-                        const data = {'success': false, 'message': '権限ありません。'}
+                        const data = {'success': false, 'message': '権限がありません。'}
                         parse($("#dateset_url_validate"), data);
                         parse($("#ckanapi_url_validate"), data);
                         parse($("#proxy_url_validate"), data);
