@@ -18,7 +18,8 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import path
 
-from sites.views import SiteIndexView, SiteSettingIndexView, SiteSettingDetailView, package_list, package_show, \
+from sites.views import SiteIndexView, SiteSettingIndexView, \
+    SiteSettingDetailView, package_list, package_show, \
     package_search, hot_tag, stat, site_validator, site_import, site_export
 
 urlpatterns = [

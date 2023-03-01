@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import aniso8601
 from django.core.exceptions import ValidationError
@@ -63,6 +64,11 @@ class Site(models.Model):
     enable = models.BooleanField(
         default=True, null=False, verbose_name="更新実行可")
     memo = models.TextField(blank=True, verbose_name="メモ")
+
+    tag_vocabulary = models.TextField(
+        null=True, blank=True, verbose_name="タグ用統制語彙")
+    tag_default = models.CharField(
+        max_length=100, null=True, blank=True, verbose_name="デフォルトタグ")
 
     def __str__(self):
         return self.title
@@ -141,8 +147,19 @@ class Site(models.Model):
         xckan.site.Site
             The site object to handle cache files and Solr index.
         """
-        xckan_site = XckanSite(self.title, self.dataset_url,
-                               self.ckanapi_url, self.proxy_url)
+        xckan_site = XckanSite(
+            self.title, self.dataset_url,
+            self.ckanapi_url, self.proxy_url)
+
+        # Set tag vocabulary
+        xckan_site.tag_default = self.tag_default
+        if self.tag_vocabulary not in (None, ''):
+            vocabs = self.tag_vocabulary.split(',')
+            xckan_site.re_vocab = re.compile(
+                '|'.join([f'({v})' for v in vocabs]))
+        else:
+            xckan_site.re_vocab = None
+
         return xckan_site
 
     def get_ckan_type(self):

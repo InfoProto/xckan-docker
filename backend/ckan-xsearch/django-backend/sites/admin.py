@@ -1,4 +1,5 @@
 from logging import getLogger
+import re
 
 from django.contrib import admin
 from django.core.exceptions import ObjectDoesNotExist
@@ -32,7 +33,7 @@ class SiteAdmin(VersionAdmin):
         'update_time', 'executed_at', 'result',
         'full_update_start_datetime', 'full_update_interval',
         'full_update_time', 'full_executed_at', 'full_result',
-        'publisher', 'publisher_url',
+        'tag_vocabulary', 'tag_default', 'publisher', 'publisher_url',
         'contact', 'contact_email', 'notify_contact_email',
     ]
 
@@ -76,6 +77,9 @@ class SiteAdmin(VersionAdmin):
 
         if obj.proxy_url and obj.proxy_url[-1] != '/':
             obj.proxy_url += '/'
+
+        # Reformat contolled vocabulary
+        obj.tag_vocabulary = re.sub(r'[\s,\u3000]+', ',', obj.tag_vocabulary)
 
         super().save_model(request, obj, form, change)
 

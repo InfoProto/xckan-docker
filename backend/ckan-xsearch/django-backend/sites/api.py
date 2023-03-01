@@ -30,6 +30,9 @@ class Api(object):
                     'xckan_last_updated', '2000-01-01T00:00:00Z'),
                 'xckan_description': x.get('xckan_description', '')
             }
+            if not isinstance(x['data_dict'], str):
+                x['data_dict'] = x['data_dict'][0]
+
             x1 = json.loads(x['data_dict'])
             if isinstance(x1, list):
                 if len(x1) == 1:

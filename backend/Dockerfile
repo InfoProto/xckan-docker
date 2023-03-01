@@ -4,7 +4,7 @@ EXPOSE 5000
 
 # Set up base platform
 ENV LC_CTYPE=C.UTF-8
-RUN apk update && apk add curl
+RUN set -x && apk add --update --no-cache curl
 
 # Install python environment
 RUN --mount=type=cache,target=/root/.cache \

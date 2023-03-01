@@ -20,7 +20,7 @@ if [ ! -e "/ext/init.log" ]; then
   echo `date` >> /ext/init.log
 else
   echo "Collecting static files."
-  python manage.py collectstatic
+  python manage.py collectstatic --noinput
 fi
 
 python manage.py runserver 0.0.0.0:5000

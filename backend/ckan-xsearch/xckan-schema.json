@@ -139,6 +139,13 @@
       "required": true
     },
     {
+      "name": "xckan_tags",
+      "type": "string",
+      "indexed": true,
+      "stored": true,
+      "multiValued": true,
+    },
+    {
       "name": "title",
       "type": "text_ja",
       "indexed": true,
@@ -449,14 +456,8 @@
       "type": "string",
       "indexed": false,
       "stored": true,
-      "docValues": false
-    },
-    {
-      "name": "validated_data_dict",
-      "type": "string",
-      "indexed": false,
-      "stored": true,
-      "docValues": false
+      "docValues": false,
+      "multiValued": false
     }
   ],
   "replace-field": [
@@ -656,6 +657,12 @@
     },
     {
       "source": "xckan_description",
+      "dest": [
+        "_text_"
+      ]
+    },
+    {
+      "source": "xckan_tags",
       "dest": [
         "_text_"
       ]

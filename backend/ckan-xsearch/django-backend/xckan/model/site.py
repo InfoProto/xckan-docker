@@ -28,6 +28,7 @@ class Site:
             '/') else url_api + '/'
         self.proxy = proxy if proxy is None or proxy.endswith(
             '/') else proxy + '/'
+        self.re_vocab = None  # Compiled regexp object of controlled vocabulary
 
         self.sample_metadata = None
 
@@ -237,7 +238,7 @@ class Site:
             Returns False if the server could not be connected
             or if an error is returned.
         """
-        # https://www.data.go.jp/data/api/3/action/package_search?fq=(metadata_modified:["2020-06-20T00:00:00Z" TO *] OR metadata_created:["2020-06-20T00:00:00Z" TO *])
+        # https://www.data.go.jp/data/api/3/action/package_search?fq=(metadata_modified:["2020-06-20T00:00:00Z" TO *] OR metadata_created:["2020-06-20T00:00:00Z" TO *])  # noqa: E501
 
         site_id = self.get_site_id()
         if self.proxy is None:

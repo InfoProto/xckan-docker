@@ -170,7 +170,11 @@ def package_show(request):
         "success": success,
         "result": result
     }
-    r = JsonResponse(obj)
+    r = JsonResponse(
+        obj,
+        json_dumps_params={"ensure_ascii": False},
+        safe=False)
+
     if mimetype:
         r.mimetype = mimetype
     return r

@@ -40,24 +40,24 @@ logger = logging.getLogger(__name__)
 class SiteUpdater:
 
     def __init__(self, cache, settings, do_full_update, do_force_full_update):
-        self.__cache = cache
-        self.__threads = {}
-        self.__settings = settings
+        self.cache = cache
+        self.threads = {}
+        self.settings = settings
         if do_full_update:
-            self.__update_site_settings = self.__settings
+            self.update_site_settings = self.settings
         else:
-            self.__update_site_settings = self.__get_update_site_settings()
+            self.update_site_settings = self.__get_update_site_settings()
 
         if do_force_full_update:
-            self.__full_update_site_settings = self.__settings
+            self.full_update_site_settings = self.settings
         else:
-            self.__full_update_site_settings = \
+            self.full_update_site_settings = \
                 self.__get_full_update_site_settings()
 
     def __get_update_site_settings(self):
         update_site_settings = []
         now = datetime.datetime.now(timezone('UTC'))
-        for site_setting in self.__settings:
+        for site_setting in self.settings:
             if not site_setting.update_interval or \
                not site_setting.update_start_datetime:
                 continue
@@ -78,7 +78,7 @@ class SiteUpdater:
         update_site_settings = []
         now = datetime.datetime.now(timezone('UTC'))
 
-        for site_setting in self.__settings:
+        for site_setting in self.settings:
             if not site_setting.full_update_interval or \
                not site_setting.full_update_start_datetime:
                 continue
@@ -98,8 +98,8 @@ class SiteUpdater:
     def update_sites(self, force=False):
         with concurrent.futures.ThreadPoolExecutor(
                 max_workers=4) as executor:
-            for setting in self.__update_site_settings:
-                if setting in self.__full_update_site_settings:
+            for setting in self.update_site_settings:
+                if setting in self.full_update_site_settings:
                     logger.info(
                         "Skip updating {}, wating full-update".format(
                             setting))
@@ -123,7 +123,7 @@ class SiteUpdater:
         buffer = io.StringIO()
 
         try:
-            result = self.__cache.update_site(xckan_site, log=buffer)
+            result = self.cache.update_site(xckan_site, log=buffer)
             if result:
                 setting.result = 'OK:{}'.format(
                     datetime.datetime.now().isoformat(timespec='seconds'))
@@ -161,7 +161,7 @@ class SiteUpdater:
     def full_update_sites(self, force=False):
         with concurrent.futures.ThreadPoolExecutor(
                 max_workers=4) as executor:
-            for setting in self.__full_update_site_settings:
+            for setting in self.full_update_site_settings:
                 xckan_site = setting.get_xckan_site()
                 executor.submit(self.__full_update_site, xckan_site, setting)
 
@@ -177,10 +177,11 @@ class SiteUpdater:
         setting.save()
 
         # full update
-        self.__cache.solr_manager.delete_site(xckan_site)
+        self.cache.solr_manager.delete_site(xckan_site)
 
+        buffer = io.StringIO()
         try:
-            result = self.__cache.update_site(xckan_site)
+            result = self.cache.update_site(xckan_site, log=buffer)
             if result:
                 setting.full_result = 'OK:{}'.format(
                     datetime.datetime.now().isoformat(timespec='seconds'))

@@ -1,5 +1,5 @@
 # coding: utf-8
-
+from abc import ABC
 import datetime
 from html.parser import HTMLParser
 from io import StringIO
@@ -82,7 +82,7 @@ def unnest(obj, dic={}, prefix=''):
     return dic
 
 
-class Metadata(object):
+class Metadata(ABC):
     """
     The abstract class of metadata classes.
     """
@@ -267,6 +267,16 @@ class Metadata(object):
                 lambda x: x.get('url'), metadata['resources'])))
             validated['res_url'] = res_url
 
+            if 'resources.last_modified' in validated:
+                orig = validated['resources.last_modified']
+                if orig is not None:
+                    modified = []
+                    for x in orig:
+                        if x is not None:
+                            modified.append(self.reformat_date_field(x))
+
+                    validated['resources.last_modified'] = modified
+
         if 'extras' in metadata:
             # validated['extras'] = metadata['extras']
             for extra in metadata['extras']:
@@ -278,6 +288,17 @@ class Metadata(object):
                     validated[key] = []
 
                 validated[key].append(extra['value'])
+
+        # Extract controlled tags
+        validated['xckan_tags'] = self.extract_controlled_tags(
+            site,
+            validated['xckan_title']
+            + validated['xckan_description']
+            + ' '.join(validated['tags'])
+            + ' '.join(validated['groups'])
+            + validated['organization']
+            + ' '.join(validated['res_description'])
+        )
 
         # Keep original data
         validated['data_dict'] = json.dumps(self.metadata, ensure_ascii=False)
@@ -341,6 +362,32 @@ class Metadata(object):
                 return organization['name']
 
         raise RuntimeError("Unexpected format in 'organization'")
+
+    def extract_controlled_tags(self, site, from_text):
+        """
+        Extract controlled vocabulary tags from text.
+
+        If vocabulary was not assigned to the site, or no word in
+        the assigned vocabulary are found in the text,
+        return the default tag (which might be None).
+
+        Otherwise, returns the list of all candidates found.
+        """
+        if site.re_vocab is None:
+            if isinstance(site.tag_default, str):
+                return [site.tag_default]
+
+            return site.tag_default
+
+        tags = site.re_vocab.findall(from_text)
+        if len(tags) == 0:
+            if isinstance(site.tag_default, str):
+                return [site.tag_default]
+
+            return site.tag_default
+
+        tags = (list)(filter(None, set(tags[0])))
+        return tags
 
 
 class CkanMetadata(Metadata):
