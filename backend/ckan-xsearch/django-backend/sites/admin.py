@@ -27,8 +27,8 @@ class SiteAdmin(VersionAdmin):
     ]
 
     fields = [
-        'title', 'dataset_url', 'ckanapi_url', 'proxy_url',
-        'is_fq_available', 'enable',
+        'title', 'dataset_url', 'ckanapi_url', 'datalistfile_url',
+        'proxy_url', 'is_fq_available', 'enable',
         'update_start_datetime', 'update_interval',
         'update_time', 'executed_at', 'result',
         'full_update_start_datetime', 'full_update_interval',
@@ -68,15 +68,22 @@ class SiteAdmin(VersionAdmin):
             obj.update_time = obj.update_start_datetime
             obj.full_update_time = obj.full_update_start_datetime
 
-        # Add '/' to the end of the URL if not already there
-        if obj.dataset_url and obj.dataset_url[-1] != '/':
-            obj.dataset_url += '/'
+        if obj.datalistfile_url:
+            # In case of using a dataset-list file,
+            # the dataset-url may point to a file.
+            if obj.proxy_url and obj.proxy_url[-1] != '/':
+                obj.proxy_url += '/'
 
-        if obj.ckanapi_url and obj.ckanapi_url[-1] != '/':
-            obj.ckanapi_url += '/'
+        else:
+            # Add '/' to the end of the URL if not already there
+            if obj.dataset_url and obj.dataset_url[-1] != '/':
+                obj.dataset_url += '/'
 
-        if obj.proxy_url and obj.proxy_url[-1] != '/':
-            obj.proxy_url += '/'
+            if obj.ckanapi_url and obj.ckanapi_url[-1] != '/':
+                obj.ckanapi_url += '/'
+
+            if obj.proxy_url and obj.proxy_url[-1] != '/':
+                obj.proxy_url += '/'
 
         # Reformat contolled vocabulary
         obj.tag_vocabulary = re.sub(r'[\s,\u3000]+', ',', obj.tag_vocabulary)

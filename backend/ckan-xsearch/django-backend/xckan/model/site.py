@@ -16,7 +16,14 @@ logger = getLogger(__name__)
 
 class Site:
 
-    def __init__(self, name, url_top=None, url_api=None, proxy=None):
+    def __init__(
+            self,
+            name,
+            url_top=None,
+            url_api=None,
+            proxy=None,
+            is_fq_available=False,
+        ):
         """
         Set URLs of the site-top and API endpoint.
         Both urls must end with '/'.
@@ -28,6 +35,7 @@ class Site:
             '/') else url_api + '/'
         self.proxy = proxy if proxy is None or proxy.endswith(
             '/') else proxy + '/'
+        self.is_fq_available = is_fq_available
         self.re_vocab = None  # Compiled regexp object of controlled vocabulary
 
         self.sample_metadata = None

@@ -22,7 +22,11 @@ class Site(models.Model):
         max_length=255, db_index=True, verbose_name="サイト名")
     dataset_url = models.URLField(verbose_name="データセットURL",
                                   unique=True)
-    ckanapi_url = models.URLField(verbose_name="API/一覧ファイル URL")
+    ckanapi_url = models.URLField(
+        default=None, null=True, blank=True, verbose_name="API URL")
+    datalistfile_url = models.URLField(
+        default=None, null=True, blank=True,
+        verbose_name="データ一覧ファイルURL")
     proxy_url = models.URLField(null=True, blank=True,
                                 verbose_name="Proxy URL")
     is_fq_available = models.BooleanField(
@@ -148,8 +152,12 @@ class Site(models.Model):
             The site object to handle cache files and Solr index.
         """
         xckan_site = XckanSite(
-            self.title, self.dataset_url,
-            self.ckanapi_url, self.proxy_url)
+            name=self.title,
+            url_top=self.dataset_url,
+            url_api=self.ckanapi_url,
+            proxy=self.proxy_url,
+            is_fq_available=self.is_fq_available,
+        )
 
         # Set tag vocabulary
         xckan_site.tag_default = self.tag_default
