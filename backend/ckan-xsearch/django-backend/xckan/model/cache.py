@@ -164,7 +164,7 @@ class CkanCache:
                 site_id, elapsed_seconds))
 
         # Use 'package_search' API with fq to get the changed metadata
-        if last_updated['list'] == 0:
+        if not site.is_fq_available or last_updated['list'] == 0:
             logger.debug("[{}] - differential update is skipped.".format(
                 site_id))
             updated = False
