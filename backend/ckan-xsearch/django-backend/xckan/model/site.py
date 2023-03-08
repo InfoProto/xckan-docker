@@ -4,6 +4,7 @@ import datetime
 import json
 from logging import getLogger
 import socket
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -12,6 +13,10 @@ from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
 
 
 class Site:
@@ -28,6 +33,8 @@ class Site:
             '/') else url_api + '/'
         self.proxy = proxy if proxy is None or proxy.endswith(
             '/') else proxy + '/'
+
+        self.tag_default = None
         self.re_vocab = None  # Compiled regexp object of controlled vocabulary
 
         self.sample_metadata = None
@@ -124,7 +131,7 @@ class Site:
             url = self.proxy + 'package_list?fq={}'.format(
                 urllib.parse.quote('id:' + site_id + r'\:*'))
             try:
-                response = urllib.request.urlopen(url, None, 10)
+                response = urllib.request.urlopen(url, context=ctx, timeout=10)
                 from_proxy = True
             except (urllib.error.HTTPError, urllib.error.URLError,
                     socket.timeout) as e:
@@ -135,7 +142,7 @@ class Site:
             # Request to the original ckan server
             url = self.get_api() + 'package_list'
             try:
-                response = urllib.request.urlopen(url, None, 10)
+                response = urllib.request.urlopen(url, context=ctx, timeout=10)
                 from_proxy = False
             except (urllib.error.HTTPError, urllib.error.URLError,
                     socket.timeout) as e:
@@ -182,7 +189,7 @@ class Site:
             url = self.proxy + 'package_show?id=' + urllib.parse.quote(
                 site_id + ':' + package_id)
             try:
-                response = urllib.request.urlopen(url, None, 10)
+                response = urllib.request.urlopen(url, context=ctx, timeout=10)
                 from_proxy = True
             except Exception as e:
                 logger.error(
@@ -194,7 +201,7 @@ class Site:
                 package_id)
 
             try:
-                response = urllib.request.urlopen(url, None, 10)
+                response = urllib.request.urlopen(url, context=ctx, timeout=10)
                 from_proxy = False
             except Exception as e:
                 logger.error(
@@ -275,7 +282,7 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(url, None, 10)
+                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
                     from_proxy = True
                 except Exception as e:
                     logger.error(
@@ -293,7 +300,7 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(url, None, 10)
+                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
                     from_proxy = False
                 except Exception as e:
                     logger.error(
@@ -338,7 +345,7 @@ class Site:
         """
         for i in range(1, 3):
             try:
-                urllib.request.urlopen(self.get_top(), timeout=10)
+                urllib.request.urlopen(self.get_top(), context=ctx, timeout=10)
                 return True
             except (urllib.error.HTTPError, urllib.error.URLError,) as e:
                 logger.error(str(e))

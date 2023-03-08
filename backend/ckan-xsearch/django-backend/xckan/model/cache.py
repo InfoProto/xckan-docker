@@ -9,6 +9,7 @@ from logging import getLogger
 import os
 import shutil
 import socket
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -18,6 +19,10 @@ from .solr import SolrManager
 from .metadata import Metadata
 
 logger = getLogger(__name__)
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
 
 
 class CkanCache:
@@ -1180,7 +1185,7 @@ class CkanCache:
         url = resource.get('download_url',
                            resource.get('url'))
         try:
-            response = urllib.request.urlopen(url, None, 10)
+            response = urllib.request.urlopen(url, context=ctx, timeout=10)
             if response.status >= 200 and response.status < 300:
                 data = response.read()
 

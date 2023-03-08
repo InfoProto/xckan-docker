@@ -163,6 +163,7 @@ class Api(object):
                     "xckan_site_name",
                     "organization",
                     "res_format",
+                    "xckan_tags",
                     "tags",
                     "groups"
                 ],
