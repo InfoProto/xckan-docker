@@ -1,6 +1,8 @@
 # coding: utf-8
 
+import csv
 import datetime
+import io
 import json
 from logging import getLogger
 import socket
@@ -8,6 +10,8 @@ import ssl
 import time
 import urllib.parse
 import urllib.request
+
+import charset_normalizer
 
 from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
@@ -20,6 +24,9 @@ ctx.verify_mode = ssl.CERT_NONE
 
 
 class Site:
+    """
+    Data provider using CKAN compatible APIs.
+    """
 
     def __init__(
         self,
@@ -202,6 +209,8 @@ class Site:
                 logger.error(
                     str(e) + " while accessing proxy '{}'".format(url))
                 return False
+            finally:
+                time.sleep(1.0)
 
         if not from_proxy:
             url = self.get_api() + 'package_show?id=' + urllib.parse.quote(
@@ -214,6 +223,8 @@ class Site:
                 logger.error(
                     str(e) + " while accessing '{}'".format(url))
                 return False
+            finally:
+                time.sleep(1.0)
 
         body = response.read()
         if body is None or len(body) == 0:
@@ -426,3 +437,141 @@ class Site:
         self.sample_metadata = res['result']
 
         return self.sample_metadata
+
+
+class SiteByListfile(Site):
+    """
+    Data provider using Metadata list file.
+    """
+
+    def __init__(
+            self,
+            name,
+            organization=None,
+            url_top=None,
+            url_listfile=None,
+            proxy=None,):
+        super().__init__(
+            name=name,
+            url_top=url_top,
+            url_api=None,
+            proxy=proxy,
+            is_fq_available=False)
+        self.organization = organization
+        self.url_listfile = url_listfile
+        self.metadata_cache = {}
+
+    def parse_datalist(self, datalist: bytes):
+        """
+        Get the contents of the data-list file
+        as a list of rows.
+
+        The columns must be;
+        都道府県コード又は市区町村コード,NO,都道府県名,市区町村名,
+        データ名称,データ概要,データ形式,分類,更新頻度,
+        URL,API対応有無,ライセンス,登録日,最終更新日,備考
+
+        Notes
+        -----
+        - This method also refresh and cache the all metadata.
+        """
+        self.metadata_cache = {}
+        results = []
+        encoding = charset_normalizer.detect(datalist)['encoding']
+        buffer = io.StringIO(datalist.decode(encoding=encoding))
+        reader = csv.DictReader(buffer)
+        for row in reader:
+            self.metadata_cache[row["NO"]] = row
+            results.append(row)
+
+        return results
+
+    def get_api(self):
+        return ""
+
+    def get_api_base(self):
+        return ""
+
+    def get_package_list(self):
+        """
+        Get list of metadata from the listfile,
+        then returns results in a format similar to
+        the CKAN package_list API.
+        """
+        if self.proxy is not None:
+            return super().get_package_list()
+
+        # Request listfile to the original server
+        url = self.url_listfile
+        try:
+            response = urllib.request.urlopen(url, context=ctx, timeout=10)
+            from_proxy = False
+        except (urllib.error.HTTPError, urllib.error.URLError,
+                socket.timeout) as e:
+            logger.error(
+                str(e) + " while accessing '{}'".format(url)
+            )
+            return False
+
+        body = response.read()
+        if body is None or len(body) == 0:
+            logger.warning(
+                "Cannot read dataset list from '{}', skipped.".format(url))
+            return False
+
+        packages = self.parse_datalist(body)
+
+        results = {
+            "success": True,
+            "result": [x["NO"] for x in packages],
+        }
+        return results
+
+    def get_package_metadata(self, package_id: str):
+        """
+        Get the metadata of specified package_id.
+        """
+        if self.proxy is not None:
+            return super().get_package_metadata(package_id)
+
+        if package_id not in self.metadata_cache:
+            return False
+
+        metadata = self.metadata_cache[package_id]
+        extras = []
+        for key in (
+                "都道府県コード又は市区町村コード",
+                "都道府県名", "市区町村名",
+                "API対応有無", "更新頻度"):
+            if key in metadata[key] and metadata[key]:
+                extras.append({
+                    "key": key,
+                    "value": metadata[key],
+                })
+
+        result = {
+            "help": self.url_listfile,
+            "success": True,
+            "result": {
+                "name": metadata["NO"],
+                "title": metadata["データ名称"],
+                "notes": metadata["備考"],
+                "license_title": metadata["ライセンス"],
+                "metadata_created": metadata["登録日"],
+                "metadata_modified": metadata["最終更新日"],
+                "organization": self.organization,
+                "resources": [{
+                    "format": metadata["データ形式"],
+                    "url": metadata["URL"],
+                    "name": metadata["データ名称"],
+                    "description": metadata["データ概要"],
+                }],
+                "extras": extras,
+                "tags": [[metadata["分類"]]],
+                "generator": "メタデータ一覧ファイルより作成",
+                "source": self.url_listfile,
+                "xckan_site_url": self.url_top,
+            }
+        }
+
+        return result

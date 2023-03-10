@@ -347,8 +347,6 @@ class CkanCache:
                 site_id, package_id))
             return False
 
-        time.sleep(1.0)
-
         logger.debug("Updating metadata in 'get_package_metadata'")
         self.__update_cached_package_metadata(site, package_id, content)
 

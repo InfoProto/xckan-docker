@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.db import models
 
-from xckan.model.site import Site as XckanSite
+from xckan.model.site import Site as XckanSite, SiteByListfile as XckanSiteLf
 
 
 def validate_interval(value):
@@ -151,13 +151,25 @@ class Site(models.Model):
         xckan.site.Site
             The site object to handle cache files and Solr index.
         """
-        xckan_site = XckanSite(
-            name=self.title,
-            url_top=self.dataset_url,
-            url_api=self.ckanapi_url,
-            proxy=self.proxy_url,
-            is_fq_available=self.is_fq_available,
-        )
+        if not self.ckanapi_url and self.datalistfile_url:
+            xckan_site = XckanSiteLf(
+                name=self.title,
+                organization={
+                    "title": self.publisher,
+                    "url": self.publisher_url,
+                },
+                url_top=self.dataset_url,
+                url_listfile=self.datalistfile_url,
+                proxy=self.proxy_url,
+            )
+        else:
+            xckan_site = XckanSite(
+                name=self.title,
+                url_top=self.dataset_url,
+                url_api=self.ckanapi_url,
+                proxy=self.proxy_url,
+                is_fq_available=self.is_fq_available,
+            )
 
         # Set tag vocabulary
         xckan_site.tag_default = self.tag_default
