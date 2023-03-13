@@ -127,7 +127,8 @@ class Site:
         url_compose = urllib.parse.urlparse(self.url_top[0:-1])
         # logger.debug("url_compose.netloc:'{}', url_compose.path:'{}'".format(
         # url_compose.netloc, url_compose.path))
-        site_id = (url_compose.netloc + url_compose.path).replace('/', '__')
+        site_id = (url_compose.netloc + url_compose.path).replace(
+            '_', '__').replace('/', '__')
         # logger.debug("url: {}, site_id: {}".format(self.url_top, site_id))
 
         return site_id
@@ -549,6 +550,11 @@ class SiteByListfile(Site):
                     "value": metadata[key],
                 })
 
+        if metadata["URL"]:
+            link_url = metadata["URL"]
+        else:
+            link_url = self.url_top
+
         result = {
             "help": self.url_listfile,
             "success": True,
@@ -567,10 +573,10 @@ class SiteByListfile(Site):
                     "description": metadata["データ概要"],
                 }],
                 "extras": extras,
-                "tags": [[metadata["分類"]]],
+                "tags": [{"name": metadata["分類"]}],
                 "generator": "メタデータ一覧ファイルより作成",
                 "source": self.url_listfile,
-                "xckan_site_url": self.url_top,
+                "xckan_site_url": link_url,
             }
         }
 
