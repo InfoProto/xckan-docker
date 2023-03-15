@@ -10,6 +10,7 @@ import ssl
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
 
 import charset_normalizer
 
@@ -246,6 +247,7 @@ class Site:
         """
         Get updated packages modified/created after the datetime
         specified by 'since'.
+        This method returns a generator.
 
         Parameters
         ----------
@@ -265,12 +267,13 @@ class Site:
             or if an error is returned.
         """
         # https://www.data.go.jp/data/api/3/action/package_search?fq=(metadata_modified:["2020-06-20T00:00:00Z" TO *] OR metadata_created:["2020-06-20T00:00:00Z" TO *])  # noqa: E501
-
         site_id = self.get_site_id()
         if self.proxy is None:
             from_proxy = False
         else:
             from_proxy = None
+            # Initially set to None and change to True
+            # after a successful access
 
         if since is None:
             since = datetime.datetime.utcfromtimestamp(
@@ -291,7 +294,7 @@ class Site:
         while count is None or start < count:
             if from_proxy is None or from_proxy is True:
                 query = {
-                    'fq': r'id:{}\;* AND xckan_last_updated:["{}" TO *]'.format(
+                    'fq': r'id:{}\:* AND xckan_last_updated:["{}" TO *]'.format(
                         site_id, from_str),
                     'start': start,
                     'rows': rows
@@ -302,7 +305,17 @@ class Site:
 
                 try:
                     response = urllib.request.urlopen(url, context=ctx, timeout=10)
-                    from_proxy = True
+                    from_proxy = True  # The server responded to package_search.
+                except urllib.error.URLError as e:
+                    if 'try again' in str(e.reason).lower():
+                        logger.debug(
+                            str(e) + " while accessing proxy '{}'".format(url))
+                        time.sleep(5)
+                        continue
+
+                    logger.error(
+                        str(e) + " while accessing proxy '{}'".format(url))
+                    return False
                 except Exception as e:
                     logger.error(
                         str(e) + " while accessing proxy '{}'".format(url))
@@ -334,9 +347,10 @@ class Site:
                     "Not JSON response from '{}'".format(url))
                 return False
 
-            results += result['result']['results']
-            start = len(results)
-            count = result['result']['count']
+            results = result['result']['results']
+            start += len(results)
+            if count is None or count < result['result']['count']:
+                count = result['result']['count']
 
             # Verify that the query is executed correctly
             if len(results) > 0:
@@ -352,11 +366,9 @@ class Site:
                         "The result of 'package_search' API is not reliable.")
                     return False
 
+            logger.debug(f"start:{start}, count:{count}")
             time.sleep(1)
-
-        result['result']['results'] = results
-
-        return result
+            yield result
 
     def test_top(self):
         """

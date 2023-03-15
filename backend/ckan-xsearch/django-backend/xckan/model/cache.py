@@ -117,6 +117,10 @@ class CkanCache:
         else:
             try:
                 result = self.__update_site(site, log)
+            except Exception as e:
+                logger.error(str(e))
+                import traceback
+                traceback.print_tb(e.__traceback__)  # to stderr
             finally:
                 self.__unlock_site(site)
                 logger.debug("[{}] Unlocked".format(site.get_site_id()))
@@ -164,19 +168,16 @@ class CkanCache:
                 site_id, elapsed_seconds))
 
         # Use 'package_search' API with fq to get the changed metadata
-        if not site.is_fq_available or last_updated['list'] == 0:
+        if not site.is_fq_available:
             logger.debug("[{}] - differential update is skipped.".format(
                 site_id))
             updated = False
         else:
             logger.debug("[{}] - trying get_updated_package_list".format(
                 site_id))
-            updated = site.get_updated_package_list(elapsed_seconds)
+            for updated in site.get_updated_package_list(elapsed_seconds):
+                id_list = self.__update_by_updated_package_list(site, updated)
 
-        if updated is not False:
-            logger.debug("[{}] - get_updated_package_list succeeded."
-                         .format(site_id))
-            id_list = self.__update_by_updated_package_list(site, updated)
             self.solr_manager.flash_buffer()
 
         # Step 2: ID based syncronization
@@ -541,8 +542,9 @@ class CkanCache:
             m = Metadata.get_instance(result)
             package_id = m.get_id()
             updated_id_list.append(package_id)
-            logger.debug(
-                "Updating metadata in '__update_by_updated_package_list'")
+            logger.debug((
+                "Updating metadata of '{}'"
+                " in '__update_by_updated_package_list'").format(package_id))
             self.__update_cached_package_metadata(site, package_id, metadata)
 
         return updated_id_list
