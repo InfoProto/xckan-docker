@@ -191,7 +191,7 @@
                 if (data['success']) {
                     elem.css('color', 'green').text('OK')
                 } else {
-                    elem.css('color', 'red').text(data['message'] ? data['message'] : 'エラーメッセージがありません。')
+                    elem.css('color', 'red').text(data['message'] ? data['message'] : '利用しません')
                 }
             }
         }
@@ -222,6 +222,8 @@
                     console.log(data);
                     parse($("#dateset_url_validate"), data['dataset_url']);
                     parse($("#ckanapi_url_validate"), data['ckanapi_url']);
+                    parse($("#datalistfile_url_validate"),
+                        data['datalistfile_url']);
                     parse($("#proxy_url_validate"), data['proxy_url']);
                     parse_fq($("#fq_validate"), data['fq']);
                     show_status($("#enable_validate"), data['enable']);
@@ -231,6 +233,8 @@
                         const data = {'success': false, 'message': '権限がありません。'}
                         parse($("#dateset_url_validate"), data);
                         parse($("#ckanapi_url_validate"), data);
+                        parse($("#datalistfile_url_validate"),
+                            data['datalistfile_url']);
                         parse($("#proxy_url_validate"), data);
                         parse($("#fq_validate"), data);
                         show_status($("#enable_validate"), data);
@@ -238,6 +242,8 @@
                         const data = errData.responseJSON;
                         parse($("#dateset_url_validate"), data['dataset_url']);
                         parse($("#ckanapi_url_validate"), data['ckanapi_url']);
+                        parse($("#datalistfile_url_validate"),
+                            data['datalistfile_url']);
                         parse($("#proxy_url_validate"), data['proxy_url']);
                         parse($("#fq_validate"), data['fq']);
                         show_status($("#enable_validate"), data['enable']);
