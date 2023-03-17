@@ -74,6 +74,9 @@ class Site(models.Model):
     tag_default = models.CharField(
         max_length=100, null=True, blank=True, verbose_name="デフォルトタグ")
 
+    datalist_convert_task = models.TextField(
+        null=True, blank=True, verbose_name="データリスト変換タスク")
+
     def __str__(self):
         return self.title
 
@@ -160,6 +163,7 @@ class Site(models.Model):
                 },
                 url_top=self.dataset_url,
                 url_listfile=self.datalistfile_url,
+                task=self.datalist_convert_task,
                 proxy=self.proxy_url,
             )
         else:

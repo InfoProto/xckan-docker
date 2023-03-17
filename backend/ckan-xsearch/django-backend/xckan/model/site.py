@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-import charset_normalizer
+import tablelinker
 
 from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
@@ -463,6 +463,7 @@ class SiteByListfile(Site):
             organization=None,
             url_top=None,
             url_listfile=None,
+            task=None,
             proxy=None,):
         super().__init__(
             name=name,
@@ -472,6 +473,7 @@ class SiteByListfile(Site):
             is_fq_available=False)
         self.organization = organization
         self.url_listfile = url_listfile
+        self.task = task
         self.metadata_cache = {}
 
     def parse_datalist(self, datalist: bytes):
@@ -490,14 +492,53 @@ class SiteByListfile(Site):
         """
         self.metadata_cache = {}
         results = []
-        encoding = charset_normalizer.detect(datalist)['encoding']
-        buffer = io.StringIO(datalist.decode(encoding=encoding))
-        reader = csv.DictReader(buffer)
-        for row in reader:
-            self.metadata_cache[row["NO"]] = row
-            results.append(row)
+        table = tablelinker.Table(data=datalist)
+
+        # Prepare tasks and convert the table.
+        all_tasks = []
+        try:
+            tasks = json.loads(self.task)
+            if isinstance(tasks, dict):
+                tasks = [tasks]
+
+            for task in tasks:
+                all_tasks.append(tablelinker.Task.create(task))
+
+            table = table.apply(all_tasks)
+
+        except json.decoder.JSONDecodeError:
+            # If the text is not a valid JSON string, ignore it.
+            pass
+        except ValueError as e:
+            logger.error("Some task format is invalid. {}".format(str(e)))
+            return []
+
+        with table.open(as_dict=True) as dictreader:
+            for row in dictreader:
+                self.metadata_cache[row["NO"]] = row
+                results.append(row)
 
         return results
+
+    def validate_package(self, package):
+        """
+        Check if the package contains all fields.
+        """
+        keys = (
+            "都道府県コード又は市区町村コード", "NO",
+            "都道府県名", "市区町村名", "データ名称", "データ概要",
+            "データ形式", "分類", "更新頻度", "URL", "API対応有無",
+            "ライセンス", "登録日", "最終更新日", "備考")
+        not_empties = ("NO", "データ名称",)
+        for key in keys:
+            if key not in package:
+                logger.error(f"'{key}' is not in the package.")
+                return False
+            elif key in not_empties and package.get(key) in (None, ""):
+                logger.error(f"'{key}' must not be empty.")
+                return False
+
+        return True
 
     def get_api(self):
         return ""
@@ -532,11 +573,21 @@ class SiteByListfile(Site):
                 "Cannot read dataset list from '{}', skipped.".format(url))
             return False
 
-        packages = self.parse_datalist(body)
+        self.parse_datalist(body)
+        # metadata are stored in self.metadata_cache
+        invalids = []
+        for no, package in self.metadata_cache.items():
+            if not self.validate_package(package):
+                logger.error(
+                    f"The format of package no={no} is invalid.")
+                invalids.append(no)
+
+        for no in invalids:
+            del self.metadata_cache[no]
 
         results = {
             "success": True,
-            "result": [x["NO"] for x in packages],
+            "result": list(self.metadata_cache.keys()),
         }
         return results
 

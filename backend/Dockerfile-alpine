@@ -1,19 +1,18 @@
 # syntax = docker/dockerfile:1.2
-FROM python:3.10
+FROM python:3.10-alpine
 EXPOSE 5000
 
 # Set up base platform
 ENV LC_CTYPE=C.UTF-8
-RUN apt update && apt upgrade -y \
-  && apt install -y curl mecab libmecab-dev mecab-ipadic-utf8 git
+RUN set -x && apk add --update --no-cache curl
 
 # Install python environment
 RUN --mount=type=cache,target=/root/.cache \
   pip install --upgrade pip setuptools
 WORKDIR /app
-COPY ./ckan-xsearch/requirements.txt tablelinker-1.0.0rc6.tar.gz /app/
+COPY ./ckan-xsearch/requirements.txt /app/
 RUN --mount=type=cache,target=/root/.cache \
-  pip install -r requirements.txt && pip install tablelinker-1.0.0rc6.tar.gz
+  pip install -r requirements.txt
 
 # Set up Django application
 ENV XCKAN_DB_ENGINE=django.db.backends.sqlite3 \
