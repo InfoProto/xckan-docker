@@ -28,7 +28,8 @@ class Api(object):
                 'xckan_site_url': x.get('xckan_site_url', ''),
                 'xckan_last_updated': x.get(
                     'xckan_last_updated', '2000-01-01T00:00:00Z'),
-                'xckan_description': x.get('xckan_description', '')
+                'xckan_description': x.get('xckan_description', ''),
+                'xckan_tags': x.get('xckan_tags', []),
             }
             if not isinstance(x['data_dict'], str):
                 x['data_dict'] = x['data_dict'][0]
