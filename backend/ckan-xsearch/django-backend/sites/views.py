@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import filelock
 import json
+from logging import getLogger
 import os
 import requests
 import simplejson
@@ -22,6 +23,7 @@ from xckan.siteconf import site_config
 
 from .models import Site
 
+logger = getLogger(__name__)
 mimetype = 'application/json;charset=utf-8'
 
 
@@ -367,10 +369,12 @@ def site_validator(request, *args, **kwargs):
         site.enable = False
 
     # Check fq query is available or not.
-    fq_result = validate_json_response(
-        site.ckanapi_url + 'package_search?q=*:*&fq=id:*&rows=0')
-    if fq_result['success'] is False or \
-            fq_result['result'].get('count', 0) == 0:
+    now_ymd = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+    check_url = site.ckanapi_url + 'package_search?q=*:*&fq=' + \
+        '(metadata_modified:["{}" TO *] OR '.format(now_ymd) + \
+        'metadata_created:["{}" TO *])&rows=0'.format(now_ymd)
+    fq_result = validate_json_response(check_url)
+    if fq_result['success'] is False:
         if site.is_fq_available:
             site.is_fq_available = False
             result['fq'] = {
