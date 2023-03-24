@@ -741,6 +741,8 @@ class CkanCache:
             The list of package_ids.
         """
         for package_id in add_idlist:
+            os.remove(self.__get_package_metadata_path(site, package_id))
+            # Delete metadata file not to use cache.
             content = self.get_package_metadata(site, package_id)
             if not isinstance(content, dict):
                 logger.error(
