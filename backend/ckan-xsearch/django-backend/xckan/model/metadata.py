@@ -294,10 +294,10 @@ class Metadata(ABC):
             site,
             validated['xckan_title']
             + validated['xckan_description']
-            + ' '.join(validated['tags'])
-            + ' '.join(validated['groups'])
-            + validated['organization']
-            + ' '.join(validated['res_description'])
+            + ' '.join(validated.get('tags', []))
+            + ' '.join(validated.get('groups', []))
+            + validated.get('organization', '')
+            + ' '.join(validated.get('res_description', []))
         )
 
         # Keep original data
