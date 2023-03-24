@@ -32,7 +32,7 @@ class Mail(object):
     from_address = os.getenv("XCKAN_SYSTEM_FROM", "noreply@xckan.nii.ac.jp")
     smtp_host = os.getenv("SMTP_HOST")
     if smtp_host is None:
-        raise RuntimeError("環境変数 SMTP_HOST が未指定です。")
+        logger warning("環境変数 SMTP_HOST が未指定です。")
 
     smtp_port = int(os.getenv("SMTP_PORT", 465))
     smtp_user = os.getenv("SMTP_USER")
@@ -60,6 +60,9 @@ class Mail(object):
         to_addresses: List[str]
             List of recipient addresses.
         """
+        if cls.smtp_host is None:
+            return
+
         msg = MIMEText(
             message.replace('%%SYSTEM_NAME%%', cls.system_name),
             "plain", "utf-8")
