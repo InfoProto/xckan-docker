@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import filelock
 import json
+from logging import getLogger
 import os
 import requests
 import simplejson
@@ -22,6 +23,7 @@ from xckan.siteconf import site_config
 
 from .models import Site
 
+logger = getLogger(__name__)
 mimetype = 'application/json;charset=utf-8'
 
 
@@ -277,7 +279,7 @@ def validate_dataset(url):
     output = {'success': False, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5)
+            resp = session.get(url, timeout=5, verify=False)
             resp.raise_for_status()
             output['success'] = True
         except Exception as e:
@@ -290,7 +292,7 @@ def validate_json_response(url):
     output = {'success': False, 'result': None, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5)
+            resp = session.get(url, timeout=5, verify=False)
             resp.raise_for_status()
             data = resp.json()
             output['success'] = data.get('success', False)
@@ -301,20 +303,6 @@ def validate_json_response(url):
         except Exception as e:
             output['success'] = False
             output['message'] = str(e)
-    return output
-
-
-def validate_opendatalist(url):
-    output = {'success': False, 'message': ''}
-    with requests.Session() as session:
-        try:
-            resp = session.get(url, timeout=5)
-            resp.raise_for_status()
-            output['success'] = True
-        except Exception as e:
-            output['success'] = False
-            output['message'] = str(e)
-
     return output
 
 
@@ -338,21 +326,17 @@ def site_validator(request, *args, **kwargs):
     result['dataset_url'] = validate_dataset(site.dataset_url)
 
     # Check the api url.
-    if site.ckanapi_url.lower().endswith(('.xls', '.xlsx', '.csv')):
-        # The opendata list is provided as an list file.
-        result['ckanapi_url'] = validate_opendatalist(site.ckanapi_url)
+    result['package_list'] = validate_json_response(
+        site.ckanapi_url + 'package_list?limit=1')
+    if result['package_list']['success'] is True:
+        sample_id = result['package_list']['result'][0]
+        result['ckanapi_url'] = validate_json_response(
+            site.ckanapi_url + 'package_show?id={id}'.format(
+                id=sample_id))
     else:
-        result['package_list'] = validate_json_response(
-            site.ckanapi_url + 'package_list?limit=1')
-        if result['package_list']['success'] is True:
-            sample_id = result['package_list']['result'][0]
-            result['ckanapi_url'] = validate_json_response(
-                site.ckanapi_url + 'package_show?id={id}'.format(
-                    id=sample_id))
-        else:
-            result['ckanapi_url'] = {
-                'success': False, 'result': None,
-                'message': 'Failed to execute package_list API'}
+        result['ckanapi_url'] = {
+            'success': False, 'result': None,
+            'message': 'Failed to execute package_list API'}
 
     if site.proxy_url:
         result['proxy_url'] = validate_json_response(
@@ -367,10 +351,12 @@ def site_validator(request, *args, **kwargs):
         site.enable = False
 
     # Check fq query is available or not.
-    fq_result = validate_json_response(
-        site.ckanapi_url + 'package_search?q=*:*&fq=id:*&rows=0')
-    if fq_result['success'] is False or \
-            fq_result['result'].get('count', 0) == 0:
+    now_ymd = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+    check_url = site.ckanapi_url + 'package_search?q=*:*&fq=' + \
+        '(metadata_modified:["{}" TO *] OR '.format(now_ymd) + \
+        'metadata_created:["{}" TO *])&rows=0'.format(now_ymd)
+    fq_result = validate_json_response(check_url)
+    if fq_result['success'] is False:
         if site.is_fq_available:
             site.is_fq_available = False
             result['fq'] = {

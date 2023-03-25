@@ -9,6 +9,7 @@ from logging import getLogger
 import os
 import shutil
 import socket
+import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -18,6 +19,10 @@ from .solr import SolrManager
 from .metadata import Metadata
 
 logger = getLogger(__name__)
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
 
 
 class CkanCache:
@@ -159,7 +164,7 @@ class CkanCache:
                 site_id, elapsed_seconds))
 
         # Use 'package_search' API with fq to get the changed metadata
-        if last_updated['list'] == 0:
+        if not site.is_fq_available or last_updated['list'] == 0:
             logger.debug("[{}] - differential update is skipped.".format(
                 site_id))
             updated = False
@@ -736,6 +741,8 @@ class CkanCache:
             The list of package_ids.
         """
         for package_id in add_idlist:
+            os.remove(self.__get_package_metadata_path(site, package_id))
+            # Delete metadata file not to use cache.
             content = self.get_package_metadata(site, package_id)
             if not isinstance(content, dict):
                 logger.error(
@@ -1180,7 +1187,7 @@ class CkanCache:
         url = resource.get('download_url',
                            resource.get('url'))
         try:
-            response = urllib.request.urlopen(url, None, 10)
+            response = urllib.request.urlopen(url, context=ctx, timeout=10)
             if response.status >= 200 and response.status < 300:
                 data = response.read()
 
