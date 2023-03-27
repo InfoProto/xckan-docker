@@ -1,6 +1,11 @@
 import json
 import os
 
+import dotenv
+
+
+env_path = os.path.join(os.path.dirname(__file__), "../../.env")
+dotenv.load_dotenv(env_path)
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 with open(os.path.join(BASEDIR, 'logging.json'), 'r') as f:

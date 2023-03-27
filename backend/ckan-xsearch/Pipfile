@@ -29,6 +29,7 @@ setuptools = "*"
 django = "<4.0"
 charset-normalizer = "*"
 tablelinker = {path = "./tablelinker-1.0.0.tar.gz"}
+python-dotenv = "*"
 
 [requires]
 
