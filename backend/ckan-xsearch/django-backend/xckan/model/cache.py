@@ -159,7 +159,7 @@ class CkanCache:
                 .strftime('%Y-%m-%d %H:%M:%S'),
                 (datetime.datetime.fromtimestamp(last_updated['update']))
                 .strftime('%Y-%m-%d %H:%M:%S'),
-                log))
+            ), file=log)
 
         # Step 1: Differential update
         # Use fq to update metadata that has been changed
@@ -745,7 +745,10 @@ class CkanCache:
             The list of package_ids.
         """
         for package_id in add_idlist:
-            os.remove(self.__get_package_metadata_path(site, package_id))
+            metadata_path = self.__get_package_metadata_path(site, package_id)
+            if os.path.isfile(metadata_path):
+                os.remove(metadata_path)
+
             # Delete metadata file not to use cache.
             content = self.get_package_metadata(site, package_id)
             if not isinstance(content, dict):

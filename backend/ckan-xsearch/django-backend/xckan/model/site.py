@@ -1,12 +1,9 @@
 # coding: utf-8
 
-import csv
 import datetime
-import io
 import json
 from logging import getLogger
 import socket
-import ssl
 import ssl
 import time
 import urllib.parse
@@ -309,8 +306,10 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
-                    from_proxy = True  # The server responded to package_search.
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
+                    # The server responded to package_search.
+                    from_proxy = True
                 except urllib.error.URLError as e:
                     if 'try again' in str(e.reason).lower():
                         logger.debug(
@@ -328,7 +327,8 @@ class Site:
 
             if from_proxy is None or from_proxy is False:
                 query = {
-                    'fq': '(metadata_modified:["{0}" TO *] OR metadata_created:["{0}" TO *])'.format(from_str),
+                    'fq': ('(metadata_modified:["{0}" TO *] OR '
+                           'metadata_created:["{0}" TO *]').format(from_str),
                     'start': start,
                     'rows': rows
                 }
@@ -337,7 +337,8 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
                     from_proxy = False
                 except Exception as e:
                     logger.error(
@@ -564,7 +565,6 @@ class SiteByListfile(Site):
         url = self.url_listfile
         try:
             response = urllib.request.urlopen(url, context=ctx, timeout=10)
-            from_proxy = False
         except (urllib.error.HTTPError, urllib.error.URLError,
                 socket.timeout) as e:
             logger.error(

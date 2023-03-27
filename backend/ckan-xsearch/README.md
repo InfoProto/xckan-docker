@@ -34,11 +34,12 @@ If you want to change the logging settings, edit `xckan/logging.json` also.
 - Migrate database
 
 The first time and if you change the database model,
-you will need to update the database.
+you will need to update the database and static files.
 
 ```shell
 python django-backend/manage.py makemigrations
 python django-backend/manage.py migrate
+python django-backend/manage.py collectstatic
 ```
 
 - Create administrator account

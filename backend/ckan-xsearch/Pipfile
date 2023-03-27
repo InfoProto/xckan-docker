@@ -28,6 +28,7 @@ whitenoise = "*"
 setuptools = "*"
 django = "<4.0"
 charset-normalizer = "*"
+tablelinker = {path = "./tablelinker-1.0.0.tar.gz"}
 
 [requires]
 
