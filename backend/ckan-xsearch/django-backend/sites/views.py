@@ -3,6 +3,7 @@ from datetime import datetime
 import filelock
 import json
 from logging import getLogger
+from logging import getLogger
 import os
 import requests
 import simplejson

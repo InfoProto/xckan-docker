@@ -24,6 +24,10 @@ ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
 
 class CkanCache:
 
@@ -168,7 +172,7 @@ class CkanCache:
                 site_id, elapsed_seconds))
 
         # Use 'package_search' API with fq to get the changed metadata
-        if not site.is_fq_available:
+        if not site.is_fq_available or last_updated['list'] == 0:
             logger.debug("[{}] - differential update is skipped.".format(
                 site_id))
             updated = False

@@ -22,6 +22,9 @@ __pycache__/
 
 /docker/volumes
 
+.vscode/
+.venv
 .env
 /django-backend/*.sq3
+/django-backend/*.sqlite3
 !.gitkeep
