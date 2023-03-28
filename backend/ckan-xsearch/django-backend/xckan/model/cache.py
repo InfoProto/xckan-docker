@@ -539,8 +539,8 @@ class CkanCache:
         updated_id_list = []
         for result in updated['result']['results']:
             metadata = {
-                "help": updated['help'],
-                "success": updated['success'],
+                "help": updated.get('help', ''),
+                "success": updated.get('success', ''),
                 "result": result
             }
             m = Metadata.get_instance(result)

@@ -39,11 +39,11 @@ logger = logging.getLogger(__name__)
 
 class SiteUpdater:
 
-    def __init__(self, cache, settings, do_full_update, do_force_full_update):
+    def __init__(self, cache, settings, do_force_update, do_force_full_update):
         self.cache = cache
         self.threads = {}
         self.settings = settings
-        if do_full_update:
+        if do_force_update:
             self.update_site_settings = self.settings
         else:
             self.update_site_settings = self.__get_update_site_settings()
@@ -151,7 +151,7 @@ class SiteUpdater:
                 logger.error((
                     "Cannot connect to the SMTP server."
                     "Please check the environmental variables.") + e)
-            except RuntimeError as e:
+            except RuntimeError:
                 logger.error((
                     "SMTP Host is not set."
                     "Please set 'SMTP_HOST' environmental variable ."))
@@ -209,7 +209,7 @@ class SiteUpdater:
                 logger.error((
                     "Cannot connect to the SMTP server."
                     "Please check the environmental variables.") + e)
-            except RuntimeError as e:
+            except RuntimeError:
                 logger.error((
                     "SMTP Host is not set."
                     "Please set 'SMTP_HOST' environmental variable ."))
