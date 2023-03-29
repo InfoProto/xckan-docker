@@ -9,7 +9,6 @@ from logging import getLogger
 import os
 import shutil
 import socket
-import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -19,12 +18,7 @@ from .solr import SolrManager
 from .metadata import Metadata
 
 logger = getLogger(__name__)
-
-ctx = ssl.create_default_context()
-if site_config.ACCEPT_SELF_SIGNED:
-    # Set True if accept self signed certificates
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+ctx = site_config.get_ssl_context()
 
 
 class CkanCache:

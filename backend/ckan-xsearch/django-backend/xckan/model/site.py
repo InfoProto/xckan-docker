@@ -4,7 +4,6 @@ import datetime
 import json
 from logging import getLogger
 import socket
-import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -16,10 +15,7 @@ from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
-ctx = ssl.create_default_context()
-if site_config.ACCEPT_SELF_SIGNED:
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+ctx = site_config.get_ssl_context()
 
 
 class Site:

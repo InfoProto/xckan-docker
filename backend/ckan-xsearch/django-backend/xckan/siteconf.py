@@ -1,5 +1,6 @@
 import json
 import os
+import ssl
 
 import dotenv
 
@@ -59,6 +60,19 @@ class BaseConfig(object):
 
     LOGGING_SETTINGS = BASE_LOGGING_SETTINGS
     LOGGING_SETTINGS['handlers']['file']['filename'] = LOGFILE
+
+    def get_ssl_context(self):
+        """
+        Create an SSL context according to config.
+        """
+        ctx = ssl.create_default_context()
+        ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+        if self.__class__.ACCEPT_SELF_SIGNED:
+            # Set True if accept self signed certificates
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+        return ctx
 
 
 class DevelopmentConfig(BaseConfig):
