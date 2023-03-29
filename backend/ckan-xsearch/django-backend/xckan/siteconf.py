@@ -27,7 +27,7 @@ class BaseConfig(object):
     LOGFILE = os.getenv('XCKAN_LOGFILE',
                         os.path.join(BASEDIR, 'logs/xckan.log'))
     CACHEDIR = os.getenv('XCKAN_CACHEDIR',
-                         os.path.join(os.getenv('HOME'), 'cache/'))
+                         os.path.join(os.getenv('HOME', '/ext'), 'cache/'))
     LOCKDIR = os.getenv('XCKAN_LOCKDIR', '/tmp/')
     QUERYLOGDIR = os.getenv(
         'XCKAN_QUERYLOGDIR',
@@ -84,7 +84,7 @@ class DevelopmentConfig(BaseConfig):
             os.path.join(BASEDIR, 'logs/xckan_devel.log'))
         self.CACHEDIR = os.getenv(
             'XCKAN_CACHEDIR',
-            os.path.join(os.getenv('HOME'), 'cache_devel'))
+            os.path.join(os.getenv('HOME', '/ext'), 'cache_devel'))
 
         self.LOGGING_SETTINGS['handlers']['file']['filename'] = self.LOGFILE
         self.LOGGING_SETTINGS['loggers']['xckan']['level'] = 'DEBUG'
