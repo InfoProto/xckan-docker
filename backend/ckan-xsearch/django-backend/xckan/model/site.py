@@ -320,7 +320,7 @@ class Site:
             if from_proxy is None or from_proxy is False:
                 query = {
                     'fq': ('(metadata_modified:["{0}" TO *] OR '
-                           'metadata_created:["{0}" TO *]').format(from_str),
+                           'metadata_created:["{0}" TO *])').format(from_str),
                     'start': start,
                     'rows': rows
                 }
