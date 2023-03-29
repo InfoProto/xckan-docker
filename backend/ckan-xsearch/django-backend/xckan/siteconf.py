@@ -32,6 +32,7 @@ class BaseConfig(object):
         'XCKAN_QUERYLOGDIR',
         os.path.join(
             os.getenv('HOME'), 'query_log/'))  # Query log
+    ACCEPT_SELF_SIGNED = os.getenv('ACCEPT_SELF_SIGNED', False)
 
     # Django settings
     DJANGO_SETTINGS = {

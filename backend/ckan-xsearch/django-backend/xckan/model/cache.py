@@ -21,12 +21,10 @@ from .metadata import Metadata
 logger = getLogger(__name__)
 
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+if site_config.ACCEPT_SELF_SIGNED:
+    # Set True if accept self signed certificates
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
 
 
 class CkanCache:

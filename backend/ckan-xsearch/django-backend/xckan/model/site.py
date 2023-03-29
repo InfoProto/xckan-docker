@@ -16,14 +16,10 @@ from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
-
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+if site_config.ACCEPT_SELF_SIGNED:
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
 
 
 class Site:
