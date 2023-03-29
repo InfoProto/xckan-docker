@@ -1,6 +1,8 @@
 # カタログ横断検索システム（Docker版）
 
-2023-02-28 sagara@info-proto.com
+2023-03-17 sagara@info-proto.com
+
+- メタデータ一覧ファイルによるサイト登録対応版
 
 ## このパッケージについて
 
@@ -192,12 +194,12 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
     カタログ更新時に担当者のメールアドレスに結果通知メールを
     送信したい場合には、以下の環境変数も必要です。
 
-    - XCKAN_SYSTEM_NAME : 通知メールに記載するシステム名
-    - XCKAN_SYSTEM_FROM : 通知メールの送信元メールアドレス
-    - SMTP_HOST : 通知メールを送信する SMTP サーバホスト名
-    - SMTP_PORT : SMPT ポート番号
-    - SMTP_USER : SMTP サーバに認証が必要な場合のユーザ名
-    - SMTP_PASS : SMTP サーバに認証が必要な場合のパスワード
+    - `XCKAN_SYSTEM_NAME` : 通知メールに記載するシステム名
+    - `XCKAN_SYSTEM_FROM` : 通知メールの送信元メールアドレス
+    - `SMTP_HOST` : 通知メールを送信する SMTP サーバホスト名
+    - `SMTP_PORT` : SMPT ポート番号
+    - `SMTP_USER` : SMTP サーバに認証が必要な場合のユーザ名
+    - `SMTP_PASS` : SMTP サーバに認証が必要な場合のパスワード
 
 - フロントエンドサービスのポート : services.frontend.ports
 
@@ -285,15 +287,15 @@ Ubuntu の Docker version 20.10.18 で動作確認済みです。
 
     - List metadata: 登録済みメタデータの ID リストを返します
 
-        http://&gt;server&lt;:25000/api/package_list
+            http://<server>:25000/api/package_list
 
     - Show metadata: 指定した ID を持つメタデータの詳細を返します
 
-        http://localhost:25000/api/package_show?id=&lt;id&gt;
+            http://<server>:25000/api/package_show?id=&lt;id&gt;
 
     - Search metadata: 条件に合致するメタデータのリストを返します
 
-        http://localhost:25000/api/package_search?q=%E6%96%B0%E5%9E%8B%E3%82%B3%E3%83%AD%E3%83%8A&start=0&rows=50&sort=score+desc
+            http://<server>:25000/api/package_search?q=%E6%96%B0%E5%9E%8B%E3%82%B3%E3%83%AD%E3%83%8A&start=0&rows=50&sort=score+desc
 
     Docker サービスが動いているマシン以外からAPIにアクセスしたい場合は、
     「設定」セクションの「バックエンド環境変数」を参照し、

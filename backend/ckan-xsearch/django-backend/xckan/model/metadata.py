@@ -97,9 +97,10 @@ class Metadata(ABC):
 
         for c in [
             ShirasagiMetadata,  # SHIRASAGI
-            CkanMetadata,     # ckan, dkan
-            MikawaMetadata,   # opendata-east-mikawa.jp
-            KagawaMetadata   # opendata.pref.kagawa.lg.jp
+            CkanMetadata,       # ckan, dkan
+            MikawaMetadata,     # opendata-east-mikawa.jp
+            KagawaMetadata,     # opendata.pref.kagawa.lg.jp
+            ListfileMetadata,   # www.city.morioka.iwate.jp
         ]:
             if c.is_compatible(metadata):
                 return c
@@ -321,7 +322,8 @@ class Metadata(ABC):
             return list(filter(lambda x: x, map(
                 lambda x: x.get('name'), tags)))
 
-        raise RuntimeError("Unexpected format in 'tags'")
+        raise RuntimeError(
+            "Unexpected format in 'tags':'{}'".format(tags))
 
     def __process_groups(self, metadata):
         groups = metadata['groups']
@@ -755,5 +757,100 @@ class KagawaMetadata(Metadata):
         tags = ' / '.join(tags)
         if len(tags) > 0:
             description += '【キーワード】{}'.format(tags)
+
+        return description
+
+
+class ListfileMetadata(Metadata):
+    """
+    Single metadata list file.
+    """
+
+    @staticmethod
+    def is_compatible(metadata):
+        if 'generator' not in metadata \
+                or metadata['generator'] != "メタデータ一覧ファイルより作成":
+            return False
+
+        return True
+
+    def support_fq(self):
+        return False
+
+    def get_id(self):
+        return self.metadata['name']
+
+    def get_title(self):
+        return self.metadata['title']
+
+    def get_site_url(self):
+        return self.metadata['xckan_site_url']
+
+    def get_solr_metadata(self, site):
+        metadata = super().get_solr_metadata(site)
+
+        # If the metadata has 'extras_xckan_*' fields,
+        # store the value in the xckan_* field.
+        # For example, if 'extras_xckan_site_url' contains the
+        # destination URL, store that value in 'xckan_site_url'.
+        # This will make it possible to go to that URL directly
+        # from the cross-search system.
+
+        for key, value in metadata.items():
+            if key.startswith('extras_xckan_'):
+                new_key = key[7:]
+                metadata[new_key] = value
+
+        return metadata
+
+    def get_resources(self):
+        if 'resources' in self.metadata:
+            return self.metadata['resources']
+
+        return []
+
+    def get_description(self):
+        description = self.metadata.get('notes') or ''
+        description = strip_tags(description)
+
+        resource_names = []
+        for resource in self.metadata.get('resources', []):
+            v = resource.get('name')
+            if v:
+                v = strip_tags(v)
+                if v not in resource_names:
+                    resource_names.append(v)
+
+            v = resource.get('description')
+            if v:
+                v = strip_tags(v)
+                if v not in resource_names:
+                    resource_names.append(v)
+
+        # Resource description is stored in extras field
+        # in "data.go.jp"
+        for extra_kv in self.metadata.get('extras', []):
+            if extra_kv.get('key') in (
+                    '都道府県名', '市区町村名', '分類'):
+                v = extra_kv.get('value')
+                if v:
+                    v = strip_tags(v)
+                    if v not in resource_names:
+                        resource_names.append(v)
+
+        if len(resource_names) > 0:
+            description += '【リソース】{}'.format(
+                ' / '.join(resource_names))
+
+        tags = []
+        for tag in self.metadata.get('tags', []):
+            if isinstance(tag, str):
+                tags.append(strip_tags(tag))
+            elif isinstance(tag, dict) and 'name' in tag:
+                tags.append(strip_tags(tag['name']))
+
+        if len(tags) > 0:
+            description += '【キーワード】{}'.format(
+                ' / '.join(tags))
 
         return description

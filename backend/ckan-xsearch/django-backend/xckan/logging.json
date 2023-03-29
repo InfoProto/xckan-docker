@@ -3,7 +3,7 @@
     "disable_existing_loggers": false,
     "formatters": {
         "verbose": {
-            "format": "%(asctime)s %(process)d:%(thread)d:%(levelname)s:%(filename)s:%(lineno)d:%(message)s",
+            "format": "%(name)s: %(asctime)s %(process)d:%(thread)d:%(levelname)s:%(filename)s:%(lineno)d:%(message)s",
             "datefmt": "%H:%M:%S"
         },
         "simple": {
@@ -15,7 +15,7 @@
         "console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
-            "formatter": "simple"
+            "formatter": "verbose"
         },
         "mail_admins": {
             "level": "ERROR",
@@ -39,16 +39,16 @@
         "django": {
             "handlers": ["console", "mail_admins"],
             "level": "WARNING",
-            "propagate": true
+            "propagate": false
         },
         "xckan": {
             "handlers": ["console", "file", "mail_admins"],
             "level": "INFO",
-            "propagate": true
+            "propagate": false
         },
         "scripts": {
             "handlers": ["console", "file", "mail_admins"],
-            "level": "DEBUG",
+            "level": "INFO",
             "propagate": false
         }
     }

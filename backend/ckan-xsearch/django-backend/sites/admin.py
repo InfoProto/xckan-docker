@@ -27,7 +27,8 @@ class SiteAdmin(VersionAdmin):
     ]
 
     fields = [
-        'title', 'dataset_url', 'ckanapi_url', 'datalistfile_url',
+        'title', 'dataset_url', 'ckanapi_url',
+        'datalistfile_url', 'datalist_convert_task',
         'proxy_url', 'is_fq_available', 'enable',
         'update_start_datetime', 'update_interval',
         'update_time', 'executed_at', 'result',

@@ -8,18 +8,24 @@ import ssl
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
+
+import tablelinker
 
 from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
-
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+if site_config.ACCEPT_SELF_SIGNED:
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
 
 
 class Site:
+    """
+    Data provider using CKAN compatible APIs.
+    """
 
     def __init__(
         self,
@@ -120,7 +126,8 @@ class Site:
         url_compose = urllib.parse.urlparse(self.url_top[0:-1])
         # logger.debug("url_compose.netloc:'{}', url_compose.path:'{}'".format(
         # url_compose.netloc, url_compose.path))
-        site_id = (url_compose.netloc + url_compose.path).replace('/', '__')
+        site_id = (url_compose.netloc + url_compose.path).replace(
+            '_', '__').replace('/', '__')
         # logger.debug("url: {}, site_id: {}".format(self.url_top, site_id))
 
         return site_id
@@ -202,6 +209,8 @@ class Site:
                 logger.error(
                     str(e) + " while accessing proxy '{}'".format(url))
                 return False
+            finally:
+                time.sleep(1.0)
 
         if not from_proxy:
             url = self.get_api() + 'package_show?id=' + urllib.parse.quote(
@@ -214,6 +223,8 @@ class Site:
                 logger.error(
                     str(e) + " while accessing '{}'".format(url))
                 return False
+            finally:
+                time.sleep(1.0)
 
         body = response.read()
         if body is None or len(body) == 0:
@@ -234,6 +245,7 @@ class Site:
         """
         Get updated packages modified/created after the datetime
         specified by 'since'.
+        This method returns a generator.
 
         Parameters
         ----------
@@ -253,12 +265,13 @@ class Site:
             or if an error is returned.
         """
         # https://www.data.go.jp/data/api/3/action/package_search?fq=(metadata_modified:["2020-06-20T00:00:00Z" TO *] OR metadata_created:["2020-06-20T00:00:00Z" TO *])  # noqa: E501
-
         site_id = self.get_site_id()
         if self.proxy is None:
             from_proxy = False
         else:
             from_proxy = None
+            # Initially set to None and change to True
+            # after a successful access
 
         if since is None:
             since = datetime.datetime.utcfromtimestamp(
@@ -279,7 +292,7 @@ class Site:
         while count is None or start < count:
             if from_proxy is None or from_proxy is True:
                 query = {
-                    'fq': r'id:{}\;* AND xckan_last_updated:["{}" TO *]'.format(
+                    'fq': r'id:{}\:* AND xckan_last_updated:["{}" TO *]'.format(
                         site_id, from_str),
                     'start': start,
                     'rows': rows
@@ -289,8 +302,20 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
+                    # The server responded to package_search.
                     from_proxy = True
+                except urllib.error.URLError as e:
+                    if 'try again' in str(e.reason).lower():
+                        logger.debug(
+                            str(e) + " while accessing proxy '{}'".format(url))
+                        time.sleep(5)
+                        continue
+
+                    logger.error(
+                        str(e) + " while accessing proxy '{}'".format(url))
+                    return False
                 except Exception as e:
                     logger.error(
                         str(e) + " while accessing proxy '{}'".format(url))
@@ -298,7 +323,8 @@ class Site:
 
             if from_proxy is None or from_proxy is False:
                 query = {
-                    'fq': '(metadata_modified:["{0}" TO *] OR metadata_created:["{0}" TO *])'.format(from_str),
+                    'fq': ('(metadata_modified:["{0}" TO *] OR '
+                           'metadata_created:["{0}" TO *]').format(from_str),
                     'start': start,
                     'rows': rows
                 }
@@ -307,7 +333,8 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
                     from_proxy = False
                 except Exception as e:
                     logger.error(
@@ -322,9 +349,10 @@ class Site:
                     "Not JSON response from '{}'".format(url))
                 return False
 
-            results += result['result']['results']
-            start = len(results)
-            count = result['result']['count']
+            results = result['result']['results']
+            start += len(results)
+            if count is None or count < result['result']['count']:
+                count = result['result']['count']
 
             # Verify that the query is executed correctly
             if len(results) > 0:
@@ -340,11 +368,9 @@ class Site:
                         "The result of 'package_search' API is not reliable.")
                     return False
 
+            logger.debug(f"start:{start}, count:{count}")
             time.sleep(1)
-
-        result['result']['results'] = results
-
-        return result
+            yield result
 
     def test_top(self):
         """
@@ -426,3 +452,196 @@ class Site:
         self.sample_metadata = res['result']
 
         return self.sample_metadata
+
+
+class SiteByListfile(Site):
+    """
+    Data provider using Metadata list file.
+    """
+
+    def __init__(
+            self,
+            name,
+            organization=None,
+            url_top=None,
+            url_listfile=None,
+            task=None,
+            proxy=None,):
+        super().__init__(
+            name=name,
+            url_top=url_top,
+            url_api=None,
+            proxy=proxy,
+            is_fq_available=False)
+        self.organization = organization
+        self.url_listfile = url_listfile
+        self.task = task
+        self.metadata_cache = {}
+
+    def parse_datalist(self, datalist: bytes):
+        """
+        Get the contents of the data-list file
+        as a list of rows.
+
+        The columns must be;
+        都道府県コード又は市区町村コード,NO,都道府県名,市区町村名,
+        データ名称,データ概要,データ形式,分類,更新頻度,
+        URL,API対応有無,ライセンス,登録日,最終更新日,備考
+
+        Notes
+        -----
+        - This method also refresh and cache the all metadata.
+        """
+        self.metadata_cache = {}
+        results = []
+        table = tablelinker.Table(data=datalist)
+
+        # Prepare tasks and convert the table.
+        all_tasks = []
+        try:
+            tasks = json.loads(self.task)
+            if isinstance(tasks, dict):
+                tasks = [tasks]
+
+            for task in tasks:
+                all_tasks.append(tablelinker.Task.create(task))
+
+            table = table.apply(all_tasks)
+
+        except json.decoder.JSONDecodeError:
+            # If the text is not a valid JSON string, ignore it.
+            pass
+        except ValueError as e:
+            logger.error("Some task format is invalid. {}".format(str(e)))
+            return []
+
+        with table.open(as_dict=True) as dictreader:
+            for row in dictreader:
+                self.metadata_cache[row["NO"]] = row
+                results.append(row)
+
+        return results
+
+    def validate_package(self, package):
+        """
+        Check if the package contains all fields.
+        """
+        keys = (
+            "都道府県コード又は市区町村コード", "NO",
+            "都道府県名", "市区町村名", "データ名称", "データ概要",
+            "データ形式", "分類", "更新頻度", "URL", "API対応有無",
+            "ライセンス", "登録日", "最終更新日", "備考")
+        not_empties = ("NO", "データ名称",)
+        for key in keys:
+            if key not in package:
+                logger.error(f"'{key}' is not in the package.")
+                return False
+            elif key in not_empties and package.get(key) in (None, ""):
+                logger.error(f"'{key}' must not be empty.")
+                return False
+
+        return True
+
+    def get_api(self):
+        return ""
+
+    def get_api_base(self):
+        return ""
+
+    def get_package_list(self):
+        """
+        Get list of metadata from the listfile,
+        then returns results in a format similar to
+        the CKAN package_list API.
+        """
+        if self.proxy is not None:
+            return super().get_package_list()
+
+        # Request listfile to the original server
+        url = self.url_listfile
+        try:
+            response = urllib.request.urlopen(url, context=ctx, timeout=10)
+        except (urllib.error.HTTPError, urllib.error.URLError,
+                socket.timeout) as e:
+            logger.error(
+                str(e) + " while accessing '{}'".format(url)
+            )
+            return False
+
+        body = response.read()
+        if body is None or len(body) == 0:
+            logger.warning(
+                "Cannot read dataset list from '{}', skipped.".format(url))
+            return False
+
+        self.parse_datalist(body)
+        # metadata are stored in self.metadata_cache
+        invalids = []
+        for no, package in self.metadata_cache.items():
+            if not self.validate_package(package):
+                logger.error(
+                    f"The format of package no={no} is invalid.")
+                invalids.append(no)
+
+        for no in invalids:
+            del self.metadata_cache[no]
+
+        results = {
+            "success": True,
+            "result": list(self.metadata_cache.keys()),
+        }
+        return results
+
+    def get_package_metadata(self, package_id: str):
+        """
+        Get the metadata of specified package_id.
+        """
+        if self.proxy is not None:
+            return super().get_package_metadata(package_id)
+
+        if package_id not in self.metadata_cache:
+            return False
+
+        metadata = self.metadata_cache[package_id]
+        extras = []
+        for key in (
+                "都道府県コード又は市区町村コード",
+                "都道府県名", "市区町村名",
+                "API対応有無", "更新頻度"):
+            if key in metadata[key] and metadata[key]:
+                extras.append({
+                    "key": key,
+                    "value": metadata[key],
+                })
+
+        if metadata["URL"]:
+            link_url = metadata["URL"]
+        else:
+            link_url = self.url_top
+
+        result = {
+            "help": self.url_listfile,
+            "success": True,
+            "result": {
+                "name": metadata["NO"],
+                "title": metadata["データ名称"],
+                "notes": metadata["備考"],
+                "license_title": metadata["ライセンス"],
+                "metadata_created": metadata["登録日"],
+                "metadata_modified": metadata["最終更新日"],
+                "organization": self.organization,
+                "resources": [{
+                    "format": metadata["データ形式"],
+                    "url": metadata["URL"],
+                    "name": metadata["データ名称"],
+                    "description": metadata["データ概要"],
+                }],
+                "extras": extras,
+                "tags": [{"name": metadata["分類"]}],
+                "generator": "メタデータ一覧ファイルより作成",
+                "source": self.url_listfile,
+                "xckan_site_url": link_url,
+            }
+        }
+
+        return result

@@ -1,6 +1,11 @@
 import json
 import os
 
+import dotenv
+
+
+env_path = os.path.join(os.path.dirname(__file__), "../../.env")
+dotenv.load_dotenv(env_path)
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 with open(os.path.join(BASEDIR, 'logging.json'), 'r') as f:
@@ -27,11 +32,12 @@ class BaseConfig(object):
         'XCKAN_QUERYLOGDIR',
         os.path.join(
             os.getenv('HOME'), 'query_log/'))  # Query log
+    ACCEPT_SELF_SIGNED = os.getenv('ACCEPT_SELF_SIGNED', False)
 
     # Django settings
     DJANGO_SETTINGS = {
         'allowed_hosts': os.environ.get(
-            'XCKAN_ALLOWED_HOSTS', '.localhost'),
+            'XCKAN_ALLOWED_HOSTS', '127.0.0.1'),
         'databases': {
             'default': {
                 'ENGINE': os.environ.get(

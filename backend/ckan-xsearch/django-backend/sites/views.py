@@ -279,7 +279,9 @@ def validate_dataset(url):
     output = {'success': False, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5, verify=False)
+            resp = session.get(
+                url, timeout=5,
+                verify=not site_config.ACCEPT_SELF_SIGNED)
             resp.raise_for_status()
             output['success'] = True
         except Exception as e:
@@ -292,7 +294,9 @@ def validate_json_response(url):
     output = {'success': False, 'result': None, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5, verify=False)
+            resp = session.get(
+                url, timeout=5,
+                verify=not site_config.ACCEPT_SELF_SIGNED)
             resp.raise_for_status()
             data = resp.json()
             output['success'] = data.get('success', False)
@@ -310,9 +314,12 @@ def validate_opendatalist(url):
     output = {'success': False, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5)
+            resp = session.get(
+                url, timeout=5,
+                verify=not site_config.ACCEPT_SELF_SIGNED)
             resp.raise_for_status()
             output['success'] = True
+            output['message'] = "アクセス可能"
         except Exception as e:
             output['success'] = False
             output['message'] = str(e)
@@ -325,7 +332,12 @@ def site_validator(request, *args, **kwargs):
     """
     Validate site configuration
     """
-    result = {'dataset_url': {}, 'ckanapi_url': {}, 'fq': {}}
+    result = {
+        'dataset_url': {},
+        'ckanapi_url': {},
+        'datalistfile_url': {},
+        'fq': {}
+    }
     if not request.user or not request.user.is_authenticated or \
             not request.user.has_perm('sites.add_site'):
         return JsonResponse(result, status=401)
@@ -338,11 +350,22 @@ def site_validator(request, *args, **kwargs):
 
     # Check the dataset url is reachable.
     result['dataset_url'] = validate_dataset(site.dataset_url)
+    if result['dataset_url']['success'] is False:
+        site.enable = False
 
+    # Check proxy
+    if site.proxy_url:
+        result['proxy_url'] = validate_json_response(
+            site.proxy_url + 'package_search?q=*:*&rows=0')
+    else:
+        result['proxy_url'] = {'success': True}
+
+    fq_result = {'success': False}
     # Check the api url.
-    if site.ckanapi_url.lower().endswith(('.xls', '.xlsx', '.csv')):
+    if site.ckanapi_url is None:
         # The opendata list is provided as an list file.
-        result['ckanapi_url'] = validate_opendatalist(site.ckanapi_url)
+        result['datalistfile_url'] = validate_opendatalist(
+            site.datalistfile_url)
     else:
         result['package_list'] = validate_json_response(
             site.ckanapi_url + 'package_list?limit=1')
@@ -351,29 +374,21 @@ def site_validator(request, *args, **kwargs):
             result['ckanapi_url'] = validate_json_response(
                 site.ckanapi_url + 'package_show?id={id}'.format(
                     id=sample_id))
+            # Check fq query is available or not.
+            now_ymd = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+            check_url = site.ckanapi_url + 'package_search?q=*:*&fq=' + \
+                '(metadata_modified:["{}" TO *] OR '.format(now_ymd) + \
+                'metadata_created:["{}" TO *])&rows=0'.format(now_ymd)
+            fq_result = validate_json_response(check_url)
         else:
             result['ckanapi_url'] = {
                 'success': False, 'result': None,
                 'message': 'Failed to execute package_list API'}
 
-    if site.proxy_url:
-        result['proxy_url'] = validate_json_response(
-            site.proxy_url + 'package_search?q=*:*&rows=0')
-    else:
-        result['proxy_url'] = {'success': True}
-
-    if result['dataset_url']['success'] is False:
+    if result['ckanapi_url'].get('success', False) is False and \
+            result['datalistfile_url'].get('success', False) is False:
         site.enable = False
 
-    if result['ckanapi_url']['success'] is False:
-        site.enable = False
-
-    # Check fq query is available or not.
-    now_ymd = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
-    check_url = site.ckanapi_url + 'package_search?q=*:*&fq=' + \
-        '(metadata_modified:["{}" TO *] OR '.format(now_ymd) + \
-        'metadata_created:["{}" TO *])&rows=0'.format(now_ymd)
-    fq_result = validate_json_response(check_url)
     if fq_result['success'] is False:
         if site.is_fq_available:
             site.is_fq_available = False

@@ -21,8 +21,10 @@ from .metadata import Metadata
 logger = getLogger(__name__)
 
 ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+if site_config.ACCEPT_SELF_SIGNED:
+    # Set True if accept self signed certificates
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
 
 
 class CkanCache:
@@ -117,6 +119,10 @@ class CkanCache:
         else:
             try:
                 result = self.__update_site(site, log)
+            except Exception as e:
+                logger.error(str(e))
+                import traceback
+                traceback.print_tb(e.__traceback__)  # to stderr
             finally:
                 self.__unlock_site(site)
                 logger.debug("[{}] Unlocked".format(site.get_site_id()))
@@ -151,7 +157,7 @@ class CkanCache:
                 .strftime('%Y-%m-%d %H:%M:%S'),
                 (datetime.datetime.fromtimestamp(last_updated['update']))
                 .strftime('%Y-%m-%d %H:%M:%S'),
-                log))
+            ), file=log)
 
         # Step 1: Differential update
         # Use fq to update metadata that has been changed
@@ -171,12 +177,9 @@ class CkanCache:
         else:
             logger.debug("[{}] - trying get_updated_package_list".format(
                 site_id))
-            updated = site.get_updated_package_list(elapsed_seconds)
+            for updated in site.get_updated_package_list(elapsed_seconds):
+                id_list = self.__update_by_updated_package_list(site, updated)
 
-        if updated is not False:
-            logger.debug("[{}] - get_updated_package_list succeeded."
-                         .format(site_id))
-            id_list = self.__update_by_updated_package_list(site, updated)
             self.solr_manager.flash_buffer()
 
         # Step 2: ID based syncronization
@@ -346,8 +349,6 @@ class CkanCache:
             logger.error("[{}] Can't get the latest metadata of {}".format(
                 site_id, package_id))
             return False
-
-        time.sleep(1.0)
 
         logger.debug("Updating metadata in 'get_package_metadata'")
         self.__update_cached_package_metadata(site, package_id, content)
@@ -536,15 +537,16 @@ class CkanCache:
         updated_id_list = []
         for result in updated['result']['results']:
             metadata = {
-                "help": updated['help'],
-                "success": updated['success'],
+                "help": updated.get('help', ''),
+                "success": updated.get('success', ''),
                 "result": result
             }
             m = Metadata.get_instance(result)
             package_id = m.get_id()
             updated_id_list.append(package_id)
-            logger.debug(
-                "Updating metadata in '__update_by_updated_package_list'")
+            logger.debug((
+                "Updating metadata of '{}'"
+                " in '__update_by_updated_package_list'").format(package_id))
             self.__update_cached_package_metadata(site, package_id, metadata)
 
         return updated_id_list
@@ -741,7 +743,10 @@ class CkanCache:
             The list of package_ids.
         """
         for package_id in add_idlist:
-            os.remove(self.__get_package_metadata_path(site, package_id))
+            metadata_path = self.__get_package_metadata_path(site, package_id)
+            if os.path.isfile(metadata_path):
+                os.remove(metadata_path)
+
             # Delete metadata file not to use cache.
             content = self.get_package_metadata(site, package_id)
             if not isinstance(content, dict):
