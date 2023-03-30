@@ -22,7 +22,7 @@ class Site(models.Model):
         max_length=255, db_index=True, verbose_name="サイト名")
     dataset_url = models.URLField(verbose_name="データセットURL",
                                   unique=True)
-    ckanapi_url = models.URLField(verbose_name="API/一覧ファイル URL")
+    ckanapi_url = models.URLField(verbose_name="API URL")
     proxy_url = models.URLField(null=True, blank=True,
                                 verbose_name="Proxy URL")
     is_fq_available = models.BooleanField(

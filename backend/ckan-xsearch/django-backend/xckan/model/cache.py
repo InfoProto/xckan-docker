@@ -9,7 +9,6 @@ from logging import getLogger
 import os
 import shutil
 import socket
-import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -19,10 +18,7 @@ from .solr import SolrManager
 from .metadata import Metadata
 
 logger = getLogger(__name__)
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+ctx = site_config.get_ssl_context()
 
 
 class CkanCache:
@@ -150,8 +146,8 @@ class CkanCache:
                 (datetime.datetime.fromtimestamp(last_updated['list']))
                 .strftime('%Y-%m-%d %H:%M:%S'),
                 (datetime.datetime.fromtimestamp(last_updated['update']))
-                .strftime('%Y-%m-%d %H:%M:%S'),
-                log))
+                .strftime('%Y-%m-%d %H:%M:%S')),
+                file=log)
 
         # Step 1: Differential update
         # Use fq to update metadata that has been changed

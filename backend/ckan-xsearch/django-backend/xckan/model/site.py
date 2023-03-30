@@ -4,7 +4,6 @@ import datetime
 import json
 from logging import getLogger
 import socket
-import ssl
 import time
 import urllib.parse
 import urllib.request
@@ -13,10 +12,7 @@ from xckan.siteconf import site_config
 from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
-
-ctx = ssl.create_default_context()
-ctx.check_hostname = False
-ctx.verify_mode = ssl.CERT_NONE
+ctx = site_config.get_ssl_context()
 
 
 class Site:
@@ -289,7 +285,8 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
                     from_proxy = True
                 except Exception as e:
                     logger.error(
@@ -298,7 +295,8 @@ class Site:
 
             if from_proxy is None or from_proxy is False:
                 query = {
-                    'fq': '(metadata_modified:["{0}" TO *] OR metadata_created:["{0}" TO *])'.format(from_str),
+                    'fq': ('(metadata_modified:["{0}" TO *] OR '
+                           'metadata_created:["{0}" TO *])').format(from_str),
                     'start': start,
                     'rows': rows
                 }
@@ -307,7 +305,8 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                    response = urllib.request.urlopen(
+                        url, context=ctx, timeout=10)
                     from_proxy = False
                 except Exception as e:
                     logger.error(

@@ -279,7 +279,9 @@ def validate_dataset(url):
     output = {'success': False, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5, verify=False)
+            resp = session.get(
+                url, timeout=5,
+                verify=not site_config.ACCEPT_SELF_SIGNED)
             resp.raise_for_status()
             output['success'] = True
         except Exception as e:
@@ -292,7 +294,9 @@ def validate_json_response(url):
     output = {'success': False, 'result': None, 'message': ''}
     with requests.Session() as session:
         try:
-            resp = session.get(url, timeout=5, verify=False)
+            resp = session.get(
+                url, timeout=5,
+                verify=not site_config.ACCEPT_SELF_SIGNED)
             resp.raise_for_status()
             data = resp.json()
             output['success'] = data.get('success', False)
