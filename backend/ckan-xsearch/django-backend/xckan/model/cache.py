@@ -164,23 +164,38 @@ class CkanCache:
                 site_id, elapsed_seconds))
 
         # Use 'package_search' API with fq to get the changed metadata
-        if not site.is_fq_available or last_updated['list'] == 0:
+        if not site.is_fq_available:
+            # This site doesn't support fq search.
             updated = False
-            logger.debug("[{}] - differential update is skipped.".format(
-                site_id))
+            logger.debug(
+                "[{}] - skip updates with package_search.".format(
+                    site_id))
+        elif last_updated['list'] == 0:
+            # Perform full update using package_search.
+            updated = True
+            id_list = []
+            logger.debug(
+                "[{}] - run full updates with package_search.".format(
+                    site_id))
+            for updated in site.get_updated_package_list(since=None):
+                id_list += self.__update_by_updated_package_list(site, updated)
+
+            self.solr_manager.flash_buffer()
         else:
             updated = True
-            logger.debug("[{}] - trying get_updated_package_list".format(
-                site_id))
+            id_list = []
+            logger.debug(
+                "[{}] - run differential updates with package_search.".format(
+                    site_id))
             for updated in site.get_updated_package_list(elapsed_seconds):
-                id_list = self.__update_by_updated_package_list(site, updated)
+                id_list += self.__update_by_updated_package_list(site, updated)
 
             self.solr_manager.flash_buffer()
 
         # Step 2: ID based syncronization
         # Get the package_list from the CKAN site,
         # compare it with the id registered in Solr, and syncronize it.
-        logger.debug("[{}] - trying get_package_list".format(site_id))
+        logger.debug("[{}] - run updates with package_list.".format(site_id))
         package_list = self.get_package_list(site, force=True)
         if package_list is False:
             return False

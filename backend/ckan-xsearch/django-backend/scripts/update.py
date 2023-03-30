@@ -46,7 +46,10 @@ class SiteUpdater:
         if do_force_update:
             self.update_site_settings = self.settings
         else:
-            self.update_site_settings = self.__get_update_site_settings()
+            if do_force_full_update:
+                self.update_site_settings = []
+            else:
+                self.update_site_settings = self.__get_update_site_settings()
 
         if do_force_full_update:
             self.full_update_site_settings = self.settings

@@ -248,7 +248,7 @@ class Site:
         since: integer or iso-format string or None
             The reference date.
 
-            - None(default): during this 24 hours
+            - None(default): get all record
             - int: in the specified seconds
             - Datetime in ISO format: after the datetime
 
@@ -270,26 +270,31 @@ class Site:
             # after a successful access
 
         if since is None:
-            since = datetime.datetime.utcfromtimestamp(
-                time.time() - 86400)
-        elif isinstance(since, int) or isinstance(since, float):
-            since = datetime.datetime.utcfromtimestamp(
-                time.time() - since)
-        elif isinstance(since, str):
-            since = datetime.datetime.fromisoformat(since)
+            fq_proxy = r'id:{}\:*'.format(site_id)
+            fq = None
+        else:
+            if isinstance(since, int) or isinstance(since, float):
+                since = datetime.datetime.utcfromtimestamp(
+                    time.time() - since)
+            else:  # str
+                since = datetime.datetime.fromisoformat(since)
+
+            from_str = since.strftime('%Y-%m-%dT%H:%M:%SZ')
+            fq_proxy = r'id:{}\:* AND xckan_last_updated:["{}" TO *]'.format(
+                site_id, from_str)
+            fq = ('(metadata_modified:["{0}" TO *] OR '
+                  'metadata_created:["{0}" TO *])').format(from_str)
 
         start = 0   # default start position to be fetched
         rows = 100  # default number of rows to be fetched at once
         count = None
 
-        from_str = since.strftime('%Y-%m-%dT%H:%M:%SZ')
         results = []
 
         while count is None or start < count:
             if from_proxy is None or from_proxy is True:
                 query = {
-                    'fq': r'id:{}\:* AND xckan_last_updated:["{}" TO *]'.format(
-                        site_id, from_str),
+                    'fq': fq_proxy,
                     'start': start,
                     'rows': rows
                 }
@@ -319,11 +324,12 @@ class Site:
 
             if from_proxy is None or from_proxy is False:
                 query = {
-                    'fq': ('(metadata_modified:["{0}" TO *] OR '
-                           'metadata_created:["{0}" TO *])').format(from_str),
                     'start': start,
                     'rows': rows
                 }
+                if fq is not None:
+                    query['fq'] = fq
+
                 # params = urllib.parse.quote(q)  # , safe='([]):*')
                 params = urllib.parse.urlencode(query)
                 url = self.get_api() + 'package_search?' + params
