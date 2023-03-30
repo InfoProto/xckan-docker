@@ -188,13 +188,28 @@ class Metadata(ABC):
         which will be stored.
         """
         try:
-            return self.__get_solr_metadata(site, metadata)
+            m = self.__get_solr_metadata(site, metadata)
+            return self.filter_fields(m)
         except Exception as e:
             logger.error(
                 "Cannot convert metadata {}:{} to Solr, reason:{}".format(
                     site.get_site_id(), self.get_id(), e))
             logger.error(traceback.format_exc())
             exit(-1)
+
+    def filter_fields(self, m: dict):
+        """
+        Leave only the metadata items to be registered and delete the rest.
+        """
+        filtered = {}
+        for k, v in m.items():
+            if k.endswith('_date'):
+                v = self.reformat_date_field(str(v))
+
+            if v is not None:
+                filtered[k] = v
+
+        return filtered
 
     def __get_solr_metadata(self, site, metadata):
         validated = {}
@@ -234,7 +249,7 @@ class Metadata(ABC):
 
         if 'metadata_modified' in metadata:
             validated['metadata_modified'] = self.reformat_date_field(
-                metadata['metadata_created'])
+                metadata['metadata_modified'])
 
         if 'indexed_ts' in metadata:
             validated['indexed_ts'] = self.reformat_date_field(
