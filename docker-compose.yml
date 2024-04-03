@@ -1,7 +1,6 @@
-version: '3.7'
 services:
   solr:
-    image: solr:8.11.2
+    image: solr:9.5.0
     container_name: xckan-docker-solr
     environment:
       VERBOSE: "no"

@@ -19,6 +19,7 @@ from .metadata import Metadata
 
 logger = getLogger(__name__)
 ctx = site_config.get_ssl_context()
+MAX_METADATA_SIZE = int(os.environ.get('MAX_METADATA_SIZE', 10485760))
 
 
 class CkanCache:
@@ -553,6 +554,13 @@ class CkanCache:
             }
             m = Metadata.get_instance(result)
             package_id = m.get_id()
+            if len(result) > MAX_METADATA_SIZE:
+                logger.warning((
+                    "Package '{}' ecceeds the MAX_METADATA_SIZE (skipped).".format(
+                        package_id)
+                ))
+                continue
+
             updated_id_list.append(package_id)
             logger.debug((
                 "Updating metadata of '{}'"

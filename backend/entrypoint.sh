@@ -1,16 +1,17 @@
-#!/bin/sh
-echo "Initialize..." > /ext/init.log
+#!/usr/bin/bash
 
 # Check if solr collection is exsiting.
-if [ ! -e "/ext/init.log" ]; then
+if [ ! -f "/ext/schema_initialized" ]; then
+  echo "Initializing solr schema..." > /ext/init.log
   sleep 5  # Wait for the solr server
   curl -X POST -H 'Content-type:application/json' \
     --data-binary @/app/ckan-xsearch/xckan-schema.json \
     ${XCKAN_SOLR}/schema
-  echo `date` >> /ext/init.log
+  echo `date` >> /ext/schema_initialized
 fi
 
 # Update Django models and static files.
+echo "Initializing database..." > /ext/init.log
 echo "Making migrations." >> /ext/init.log
 python manage.py makemigrations
 echo "Migrating." >> /ext/init.log

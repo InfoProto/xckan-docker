@@ -274,8 +274,8 @@ class Site:
             fq = None
         else:
             if isinstance(since, int) or isinstance(since, float):
-                since = datetime.datetime.utcfromtimestamp(
-                    time.time() - since)
+                since = datetime.datetime.fromtimestamp(
+                    time.time() - since, tz=datetime.UTC)
             else:  # str
                 since = datetime.datetime.fromisoformat(since)
 

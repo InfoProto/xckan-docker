@@ -8,6 +8,7 @@ BACKEND_API=http://xckan-dev:25000/api
 XCKAN_ALLOWED_HOSTS=*
 DJANGO_SUPERUSER_USERNAME=xckan
 DJANGO_SUPERUSER_PASSWORD=xckan
+MAX_METADATA_SIZE=10485760
 
 # Mail (SMTP) server settings
 XCKAN_SYSTEM_NAME=xckan docker running on xckan-dev

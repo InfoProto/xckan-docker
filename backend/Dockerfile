@@ -11,9 +11,9 @@ RUN apt update && apt upgrade -y \
 RUN --mount=type=cache,target=/root/.cache \
   pip install --upgrade pip setuptools
 WORKDIR /app
-COPY ./ckan-xsearch/requirements.txt ./ckan-xsearch/tablelinker-1.0.0.tar.gz /app/
+COPY ./ckan-xsearch/requirements.txt /app/
 RUN --mount=type=cache,target=/root/.cache \
-  pip install -r requirements.txt && pip install tablelinker-1.0.0.tar.gz
+  pip install -r requirements.txt
 
 # Set up Django application
 ENV XCKAN_DB_ENGINE=django.db.backends.sqlite3 \

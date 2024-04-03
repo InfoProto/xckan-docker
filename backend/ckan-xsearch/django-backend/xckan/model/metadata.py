@@ -231,9 +231,9 @@ class Metadata(ABC):
         validated['xckan_original_id'] = validated.get(
             'xckan_original_id', self.get_id())
         validated['xckan_title'] = validated.get(
-            'xckan_title', self.get_title())
+            'xckan_title', self.get_title()) or ''
         validated['xckan_site_name'] = validated.get(
-            'xckan_site_name', site.get_name())
+            'xckan_site_name', site.get_name()) or ''
         validated['xckan_site_url'] = validated.get(
             'xckan_site_url', site.get_api_base() + self.get_site_url())
         validated['xckan_last_updated'] = validated.get(
