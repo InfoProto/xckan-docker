@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import datetime
+from http.client import IncompleteRead
 import json
 from logging import getLogger
 import socket
@@ -222,7 +223,14 @@ class Site:
             finally:
                 time.sleep(1.0)
 
-        body = response.read()
+        try:
+            body = response.read()
+        except IncompleteRead:
+            logger.error(
+                "The metadata with id='{}' is too large.".format(package_id)
+            )
+            return False
+
         if body is None or len(body) == 0:
             logger.error(
                 "Cannot read metadata from '{}'".format(url))
@@ -275,7 +283,7 @@ class Site:
         else:
             if isinstance(since, int) or isinstance(since, float):
                 since = datetime.datetime.fromtimestamp(
-                    time.time() - since, tz=datetime.UTC)
+                    time.time() - since)
             else:  # str
                 since = datetime.datetime.fromisoformat(since)
 
@@ -343,7 +351,14 @@ class Site:
                         str(e) + " while accessing '{}'".format(url))
                     return False
 
-            body = response.read()
+            try:
+                body = response.read()
+            except IncompleteRead as e:
+                # The response was too large to read at once,
+                # so retry with half the number of rows to read.
+                rows = int(rows / 2)
+                continue
+
             try:
                 result = json.loads(body.decode('utf-8'))
             except json.decoder.JSONDecodeError:

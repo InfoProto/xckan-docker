@@ -239,7 +239,7 @@ class Metadata(ABC):
         validated['xckan_last_updated'] = validated.get(
             'xckan_last_updated', self.get_last_updated())
         validated['xckan_description'] = validated.get(
-            'xckan_description', self.get_description())
+            'xckan_description', self.get_description()) or ''
         if isinstance(validated['xckan_description'], str):
             validated['xckan_description'] = \
                 validated['xckan_description'][0:5000]
