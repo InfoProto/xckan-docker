@@ -546,6 +546,7 @@ class CkanCache:
 
         # Save each package_metadata
         updated_id_list = []
+        rejected_id_list = []
         for result in updated['result']['results']:
             metadata = {
                 "help": updated.get('help', ''),
@@ -559,6 +560,7 @@ class CkanCache:
                     "Package '{}' ecceeds the MAX_METADATA_SIZE (skipped).".format(
                         package_id)
                 ))
+                rejected_id_list.append(package_id)
                 continue
 
             updated_id_list.append(package_id)
@@ -566,6 +568,9 @@ class CkanCache:
                 "Updating metadata of '{}'"
                 " in '__update_by_updated_package_list'").format(package_id))
             self.__update_cached_package_metadata(site, package_id, metadata)
+
+        # Delete oversized metadata
+        self.solr_manager.delete_document(rejected_id_list)
 
         return updated_id_list
 

@@ -308,12 +308,12 @@ class Metadata(ABC):
         # Extract controlled tags
         validated['xckan_tags'] = self.extract_controlled_tags(
             site,
-            validated.get('xckan_title', '')
-            + validated.get('xckan_description', '')
-            + ' '.join(validated.get('tags', []))
-            + ' '.join(validated.get('groups', []))
-            + validated.get('organization', '')
-            + ' '.join(validated.get('res_description', []))
+            (validated.get('xckan_title') or '')
+            + (validated.get('xckan_description') or '')
+            + ' '.join(validated.get('tags') or [])
+            + ' '.join(validated.get('groups') or [])
+            + (validated.get('organization') or '')
+            + ' '.join(validated.get('res_description') or [])
         )
 
         # Keep original data
