@@ -555,9 +555,11 @@ class CkanCache:
             }
             m = Metadata.get_instance(result)
             package_id = m.get_id()
-            if len(result) > MAX_METADATA_SIZE:
+            length = len(result.encode('utf-8'))
+            logger.info(f"{package_id}:{length}")
+            if len(result.encode('utf-8')) > MAX_METADATA_SIZE:
                 logger.warning((
-                    "Package '{}' ecceeds the MAX_METADATA_SIZE (skipped).".format(
+                    "Package '{}' exceeds the MAX_METADATA_SIZE (skipped).".format(
                         package_id)
                 ))
                 rejected_id_list.append(package_id)
