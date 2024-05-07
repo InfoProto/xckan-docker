@@ -736,6 +736,14 @@ class CkanCache:
             If the content is valid metadata, return True,
             otherwise False.
         """
+        content_json = json.dumps(content, indent=2, ensure_ascii=False)
+        if len(content_json.encode('utf-8')) > MAX_METADATA_SIZE:
+            logger.warning((
+                "Package '{}' exceeds the MAX_METADATA_SIZE (skipped).".format(
+                    package_id)
+            ))
+            return False
+
         path = self.__get_package_metadata_path(site, package_id)
 
         os.makedirs(os.path.dirname(path), 0o755, True)
