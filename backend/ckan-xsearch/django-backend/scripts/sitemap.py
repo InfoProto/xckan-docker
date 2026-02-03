@@ -18,7 +18,7 @@ import logging
 import os
 import re
 from typing import Optional, Union
-import urllib.request
+import requests
 
 from sites.models import Site as AdminSite
 from xckan.model.cache import CkanCache
@@ -247,6 +247,6 @@ def run(*args):
             sitemapindex_file)
         ping_url = "https://www.google.com/ping?sitemap={}".format(
             sitemapindex_url)
-        req = urllib.request.Request(ping_url)
-        with urllib.request.urlopen(req) as res:
-            logger.debug("Google returns '{}'".format(res.read()))
+        res = requests.get(ping_url, timeout=10)
+        res.raise_for_status()
+        logger.debug("Google returns '{}'".format(res.text))

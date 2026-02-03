@@ -28,6 +28,7 @@ charset-normalizer = "*"
 python-dotenv = "*"
 tablelinker-light = "*"
 filelock = "*"
+requests = "*"
 
 [requires]
 

@@ -7,8 +7,9 @@ from logging import getLogger
 import socket
 import time
 import urllib.parse
-import urllib.request
-import urllib.error
+import requests
+from requests.adapters import HTTPAdapter
+from requests.exceptions import ChunkedEncodingError, RequestException
 
 import tablelinker
 
@@ -17,6 +18,29 @@ from xckan.model.metadata import Metadata
 
 logger = getLogger(__name__)
 ctx = site_config.get_ssl_context()
+
+
+class SSLContextAdapter(HTTPAdapter):
+    def __init__(self, ssl_context, **kwargs):
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        pool_kwargs["ssl_context"] = self._ssl_context
+        return super().init_poolmanager(
+            connections, maxsize, block=block, **pool_kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        proxy_kwargs["ssl_context"] = self._ssl_context
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
+
+
+_session = requests.Session()
+_session.mount("https://", SSLContextAdapter(ctx))
+
+
+def _get(url: str, headers: dict | None = None):
+    return _session.get(url, timeout=10, headers=headers)
 
 
 class Site:
@@ -31,6 +55,7 @@ class Site:
         url_api=None,
         proxy=None,
         is_fq_available=False,
+        ckanapi_apitoken=None,
     ):
         """
         Set URLs of the site-top and API endpoint.
@@ -45,6 +70,11 @@ class Site:
             '/') else proxy + '/'
         self.tag_default = None
         self.is_fq_available = is_fq_available
+        if ckanapi_apitoken is None:
+            self.ckanapi_apitoken = None
+        else:
+            token = str(ckanapi_apitoken).strip()
+            self.ckanapi_apitoken = token if token != "" else None
         self.re_vocab = None  # Compiled regexp object of controlled vocabulary
 
         self.sample_metadata = None
@@ -129,6 +159,22 @@ class Site:
 
         return site_id
 
+    def _get_with_ckanapi_apitoken(self, url: str):
+        if self.proxy and url.startswith(self.proxy):
+            return _get(url)
+
+        if not self.ckanapi_apitoken:
+            return _get(url)
+
+        response = _get(url, headers={"Authorization": self.ckanapi_apitoken})
+        if response.status_code != 401:
+            return response
+
+        return _get(
+            url,
+            headers={"Authorization": f"Bearer {self.ckanapi_apitoken}"},
+        )
+
     def get_package_list(self):
         """
         Call 'package_list' API.
@@ -142,10 +188,10 @@ class Site:
             url = self.proxy + 'package_list?fq={}'.format(
                 urllib.parse.quote('id:' + site_id + r'\:*'))
             try:
-                response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                response = _get(url)
+                response.raise_for_status()
                 from_proxy = True
-            except (urllib.error.HTTPError, urllib.error.URLError,
-                    socket.timeout) as e:
+            except (RequestException, socket.timeout) as e:
                 logger.error(str(e) + "while accessing proxy '{}'".format(url))
                 return False
 
@@ -153,16 +199,16 @@ class Site:
             # Request to the original ckan server
             url = self.get_api() + 'package_list'
             try:
-                response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                response = self._get_with_ckanapi_apitoken(url)
+                response.raise_for_status()
                 from_proxy = False
-            except (urllib.error.HTTPError, urllib.error.URLError,
-                    socket.timeout) as e:
+            except (RequestException, socket.timeout) as e:
                 logger.error(
                     str(e) + " while accessing '{}'".format(url)
                 )
                 return False
 
-        body = response.read()
+        body = response.content
         if body is None or len(body) == 0:
             logger.warning(
                 "Cannot read dataset list from '{}', skipped.".format(url))
@@ -200,7 +246,8 @@ class Site:
             url = self.proxy + 'package_show?id=' + urllib.parse.quote(
                 site_id + ':' + package_id)
             try:
-                response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                response = _get(url)
+                response.raise_for_status()
                 from_proxy = True
             except Exception as e:
                 logger.error(
@@ -214,7 +261,8 @@ class Site:
                 package_id)
 
             try:
-                response = urllib.request.urlopen(url, context=ctx, timeout=10)
+                response = self._get_with_ckanapi_apitoken(url)
+                response.raise_for_status()
                 from_proxy = False
             except Exception as e:
                 logger.error(
@@ -224,8 +272,8 @@ class Site:
                 time.sleep(1.0)
 
         try:
-            body = response.read()
-        except IncompleteRead:
+            body = response.content
+        except (ChunkedEncodingError, IncompleteRead):
             logger.error(
                 "The metadata with id='{}' is too large.".format(package_id)
             )
@@ -311,12 +359,12 @@ class Site:
                 logger.debug("Updating from url;'{}'".format(url))
 
                 try:
-                    response = urllib.request.urlopen(
-                        url, context=ctx, timeout=10)
+                    response = _get(url)
+                    response.raise_for_status()
                     # The server responded to package_search.
                     from_proxy = True
-                except urllib.error.URLError as e:
-                    if 'try again' in str(e.reason).lower():
+                except RequestException as e:
+                    if 'try again' in str(e).lower():
                         logger.debug(
                             str(e) + " while accessing proxy '{}'".format(url))
                         time.sleep(5)
@@ -343,8 +391,8 @@ class Site:
                 url = self.get_api() + 'package_search?' + params
 
                 try:
-                    response = urllib.request.urlopen(
-                        url, context=ctx, timeout=10)
+                    response = self._get_with_ckanapi_apitoken(url)
+                    response.raise_for_status()
                     from_proxy = False
                 except Exception as e:
                     logger.error(
@@ -352,8 +400,8 @@ class Site:
                     return False
 
             try:
-                body = response.read()
-            except IncompleteRead as e:
+                body = response.content
+            except (ChunkedEncodingError, IncompleteRead) as e:
                 # The response was too large to read at once,
                 # so retry with half the number of rows to read.
                 rows = int(rows / 2)
@@ -395,9 +443,10 @@ class Site:
         """
         for i in range(1, 3):
             try:
-                urllib.request.urlopen(self.get_top(), context=ctx, timeout=10)
+                response = _get(self.get_top())
+                response.raise_for_status()
                 return True
-            except (urllib.error.HTTPError, urllib.error.URLError,) as e:
+            except RequestException as e:
                 logger.error(str(e))
                 return False
             except ConnectionResetError as e:
@@ -577,15 +626,15 @@ class SiteByListfile(Site):
         # Request listfile to the original server
         url = self.url_listfile
         try:
-            response = urllib.request.urlopen(url, context=ctx, timeout=10)
-        except (urllib.error.HTTPError, urllib.error.URLError,
-                socket.timeout) as e:
+            response = _get(url)
+            response.raise_for_status()
+        except (RequestException, socket.timeout) as e:
             logger.error(
                 str(e) + " while accessing '{}'".format(url)
             )
             return False
 
-        body = response.read()
+        body = response.content
         if body is None or len(body) == 0:
             logger.warning(
                 "Cannot read dataset list from '{}', skipped.".format(url))

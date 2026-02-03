@@ -24,6 +24,8 @@ class Site(models.Model):
                                   unique=True)
     ckanapi_url = models.URLField(
         default=None, null=True, blank=True, verbose_name="API URL")
+    ckanapi_apitoken = models.CharField(
+        max_length=1024, null=True, blank=True, verbose_name="APIトークン")
     datalistfile_url = models.URLField(
         default=None, null=True, blank=True,
         verbose_name="データ一覧ファイルURL")
@@ -173,6 +175,7 @@ class Site(models.Model):
                 url_api=self.ckanapi_url,
                 proxy=self.proxy_url,
                 is_fq_available=self.is_fq_available,
+                ckanapi_apitoken=self.ckanapi_apitoken,
             )
 
         # Set tag vocabulary

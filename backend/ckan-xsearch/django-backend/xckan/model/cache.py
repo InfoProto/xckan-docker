@@ -2,7 +2,6 @@
 
 import datetime
 import glob
-from http.client import InvalidURL
 import json
 from json import JSONDecodeError
 from logging import getLogger
@@ -11,7 +10,9 @@ import shutil
 import socket
 import time
 import urllib.parse
-import urllib.request
+import requests
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException
 
 from xckan.siteconf import site_config
 from .solr import SolrManager
@@ -20,6 +21,29 @@ from .metadata import Metadata
 logger = getLogger(__name__)
 ctx = site_config.get_ssl_context()
 MAX_METADATA_SIZE = int(os.environ.get('MAX_METADATA_SIZE', 10485760))
+
+
+class SSLContextAdapter(HTTPAdapter):
+    def __init__(self, ssl_context, **kwargs):
+        self._ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        pool_kwargs["ssl_context"] = self._ssl_context
+        return super().init_poolmanager(
+            connections, maxsize, block=block, **pool_kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        proxy_kwargs["ssl_context"] = self._ssl_context
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
+
+
+_session = requests.Session()
+_session.mount("https://", SSLContextAdapter(ctx))
+
+
+def _get(url: str):
+    return _session.get(url, timeout=10)
 
 
 class CkanCache:
@@ -1225,12 +1249,11 @@ class CkanCache:
         url = resource.get('download_url',
                            resource.get('url'))
         try:
-            response = urllib.request.urlopen(url, context=ctx, timeout=10)
-            if response.status >= 200 and response.status < 300:
-                data = response.read()
+            response = _get(url)
+            response.raise_for_status()
+            data = response.content
 
-        except (urllib.error.HTTPError, urllib.error.URLError,
-                socket.timeout, InvalidURL, Exception) as e:
+        except (RequestException, socket.timeout, Exception) as e:
             logger.error(
                 str(e) + "(while downloading resource from '{}')".format(url))
             return False
