@@ -20,7 +20,8 @@ from django.urls import path
 
 from sites.views import SiteIndexView, SiteSettingIndexView, \
     SiteSettingDetailView, package_list, package_show, \
-    package_search, hot_tag, stat, site_validator, site_import, site_export
+    package_search, hot_tag, stat, site_list, \
+    site_validator, site_import, site_export
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -35,6 +36,7 @@ urlpatterns = [
     path('api/package_search', package_search, name='package_search'),
     path('api/hot_tag', hot_tag, name='hot_tag'),
     path('api/stat', stat, name='stat'),
+    path('api/site_list', site_list, name='site_list'),
 ]
 
 # Serving static files during development

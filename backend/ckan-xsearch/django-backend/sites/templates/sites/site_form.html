@@ -1,11 +1,11 @@
 {% load static %}
 {% load verbose_name %}
 {% load yesno_image %}
-<!-- Bootstrap4 -->
-{% load bootstrap4 %}
+<!-- Bootstrap5 -->
+{% load django_bootstrap5 %}
 {% bootstrap_css %}
-{% bootstrap_javascript jquery='full' %}
-<!-- Bootstrap4 -->
+{% bootstrap_javascript %}
+<!-- Bootstrap5 -->
 
 <!DOCTYPE html>
 <html lang="ja" dir="ltr">
@@ -187,72 +187,81 @@
 </div>
 <!-- END Container -->
 {% if user.is_authenticated and perms.sites.add_site %}
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script type="text/javascript">
+        function setStatus(elem, color, text) {
+            if (!elem) {
+                return;
+            }
+            elem.style.color = color;
+            elem.textContent = text;
+        }
+
         function parse(elem, data) {
             if (!data) {
-                elem.css('color', 'red').text('URLを確認してください')
+                setStatus(elem, 'red', 'URLを確認してください');
             } else {
                 if (data['success']) {
-                    elem.css('color', 'green').text('OK')
+                    setStatus(elem, 'green', 'OK');
                 } else {
-                    elem.css('color', 'red').text(data['message'] ? data['message'] : '利用しません')
+                    setStatus(elem, 'red', data['message'] ? data['message'] : '利用しません');
                 }
             }
         }
 
         function parse_fq(elem, data) {
             if (!data) {
-                elem.css('color', 'red').text('fq は利用できません')
+                setStatus(elem, 'red', 'fq は利用できません');
             } else {
                 if (data['success']) {
-                    elem.css('color', 'green').text(data['message'])
+                    setStatus(elem, 'green', data['message']);
                 } else {
-                    elem.css('color', 'red').text(data['message'] ? data['message'] : 'エラーメッセージがありません。')
+                    setStatus(elem, 'red', data['message'] ? data['message'] : 'エラーメッセージがありません。');
                 }
             }
         }
 
         function show_status(elem, data) {
             if (data['success']) {
-                elem.css('color', 'green').text(data['message'] ? data['message'] : 'OK')
+                setStatus(elem, 'green', data['message'] ? data['message'] : 'OK');
             } else {
-                elem.css('color', 'red').text(data['message'] ? data['message'] : 'エラーメッセージがありません。')
+                setStatus(elem, 'red', data['message'] ? data['message'] : 'エラーメッセージがありません。');
             }
         }
 
         function validate() {
-            $.ajax({url: '/sites/{{ site.id }}/validate', type: 'get'})
-                .done((data) => {
-                    console.log(data);
-                    parse($("#dateset_url_validate"), data['dataset_url']);
-                    parse($("#ckanapi_url_validate"), data['ckanapi_url']);
-                    parse($("#datalistfile_url_validate"),
-                        data['datalistfile_url']);
-                    parse($("#proxy_url_validate"), data['proxy_url']);
-                    parse_fq($("#fq_validate"), data['fq']);
-                    show_status($("#enable_validate"), data['enable']);
-                })
-                .error((errData) => {
-                    if (errData.status === 401) {
-                        const data = {'success': false, 'message': '権限がありません。'}
-                        parse($("#dateset_url_validate"), data);
-                        parse($("#ckanapi_url_validate"), data);
-                        parse($("#datalistfile_url_validate"),
-                            data['datalistfile_url']);
-                        parse($("#proxy_url_validate"), data);
-                        parse($("#fq_validate"), data);
-                        show_status($("#enable_validate"), data);
-                    } else {
-                        const data = errData.responseJSON;
-                        parse($("#dateset_url_validate"), data['dataset_url']);
-                        parse($("#ckanapi_url_validate"), data['ckanapi_url']);
-                        parse($("#datalistfile_url_validate"),
-                            data['datalistfile_url']);
-                        parse($("#proxy_url_validate"), data['proxy_url']);
-                        parse($("#fq_validate"), data['fq']);
-                        show_status($("#enable_validate"), data['enable']);
+            fetch('/sites/{{ site.id }}/validate', {method: 'GET'})
+                .then(function(response) {
+                    if (response.status === 401) {
+                        return {ok: false, status: 401, data: {'success': false, 'message': '権限がありません。'}};
                     }
+                    return response.json().then(function(data) {
+                        return {ok: response.ok, status: response.status, data: data};
+                    }).catch(function() {
+                        return {ok: response.ok, status: response.status, data: null};
+                    });
+                })
+                .then(function(result) {
+                    var data = result.data;
+                    console.log(data);
+                    if (!data) {
+                        return;
+                    }
+                    parse(document.getElementById('dateset_url_validate'), data['dataset_url']);
+                    parse(document.getElementById('ckanapi_url_validate'), data['ckanapi_url']);
+                    parse(document.getElementById('datalistfile_url_validate'),
+                        data['datalistfile_url']);
+                    parse(document.getElementById('proxy_url_validate'), data['proxy_url']);
+                    parse_fq(document.getElementById('fq_validate'), data['fq']);
+                    show_status(document.getElementById('enable_validate'), data['enable']);
+                })
+                .catch(function() {
+                    var data = {'success': false, 'message': '通信に失敗しました。'};
+                    parse(document.getElementById('dateset_url_validate'), data);
+                    parse(document.getElementById('ckanapi_url_validate'), data);
+                    parse(document.getElementById('datalistfile_url_validate'), data);
+                    parse(document.getElementById('proxy_url_validate'), data);
+                    parse_fq(document.getElementById('fq_validate'), data);
+                    show_status(document.getElementById('enable_validate'), data);
                 });
         }
     </script>

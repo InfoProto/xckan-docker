@@ -2,11 +2,11 @@
 {% load verbose_name %}
 {% load yesno_image %}
 {% load attrib %}
-<!-- Bootstrap4 -->
-{% load bootstrap4 %}
+<!-- Bootstrap5 -->
+{% load django_bootstrap5 %}
 {% bootstrap_css %}
-{% bootstrap_javascript jquery='full' %}
-<!-- Bootstrap4 -->
+{% bootstrap_javascript %}
+<!-- Bootstrap5 -->
 
 <!DOCTYPE html>
 <html lang="ja" dir="ltr">
@@ -18,14 +18,6 @@
     <script src="/static/admin/js/nav_sidebar.js" defer></script>
     <link rel="stylesheet" type="text/css" href="/static/admin/css/changelists.css">
     <script src="/admin/jsi18n/"></script>
-    <script src="/static/admin/js/vendor/jquery/jquery.js"></script>
-    <script src="/static/admin/js/jquery.init.js"></script>
-    <script src="/static/admin/js/core.js"></script>
-    <script src="/static/admin/js/admin/RelatedObjectLookups.js"></script>
-    <script src="/static/admin/js/actions.js"></script>
-    <script src="/static/admin/js/urlify.js"></script>
-    <script src="/static/admin/js/prepopulate.js"></script>
-    <script src="/static/admin/js/vendor/xregexp/xregexp.js"></script>
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <link rel="stylesheet" type="text/css" href="/static/admin/css/responsive.css">
     <meta name="robots" content="NONE,NOARCHIVE">
@@ -59,15 +51,15 @@
                             <div id="changelist-form">
                                 {% if user.is_authenticated and perms.sites.add_site %}
                                 <div>
-                                    <input type="button" data-toggle="modal" data-target="#importModel" value="インポート" />
+                                    <input type="button" data-bs-toggle="modal" data-bs-target="#importModel" value="インポート" />
                                     <a href="/sites/export"><input type="button" value="エクスポート" /></a>
                                 </div>
                                 {% endif %}
                                 <form>
-                                    <div class="form-group row" style="margin:5px;padding:5px;border:1px solid #888;">
-                                        <lavel class="col-sm-2 col-form-label col-form-label-sm">List conditions</lavel>
+                                    <div class="row g-2 mb-2" style="margin:5px;padding:5px;border:1px solid #888;">
+                                        <label class="col-sm-2 col-form-label col-form-label-sm">List conditions</label>
                                         <label for="inputKey" class="col-sm-1 col-form-label col-form-label-sm">Keyword</label>
-                                        <div class="fcol-sm-3">
+                                        <div class="col-sm-3">
                                             <input type="text" class="form-control form-control-sm" id="inputKey" name="key" value="{{ key }}">
                                         </div>
                                         <label for="inputRows" class="col-sm-1 col-form-label col-form-label-sm">Rows</label>
@@ -160,24 +152,22 @@
                     </ul>
                 </nav>
             </div>
-            <div class="modal fade" id="importModel" tabindex="-1" role="dialog" aria-labelledby="importModel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
+            <div class="modal fade" id="importModel" tabindex="-1" aria-labelledby="importModel" aria-hidden="true">
+                <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="exampleModalLabel">サイト情報一括アップロード</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <form id="import-form" action="/sites/import" method="post" enctype="multipart/form-data">
                                 {% csrf_token %}
-                                <input type="file" name="files" />
+                                <input type="file" name="files" class="form-control" />
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">閉じる</button>
-                            <button type="button" class="btn btn-primary" onclick="$('#import-form').submit()">アップロード</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('import-form').submit()">アップロード</button>
                         </div>
                     </div>
                 </div>

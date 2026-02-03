@@ -19,7 +19,7 @@ docopt = "*"
 gunicorn = "*"
 pysolr = "*"
 simplejson = "*"
-django-bootstrap4 = "*"
+django-bootstrap5 = "*"
 django-cors-headers = "*"
 whitenoise = "*"
 setuptools = "*"
@@ -27,6 +27,7 @@ django = "*"
 charset-normalizer = "*"
 python-dotenv = "*"
 tablelinker-light = "*"
+filelock = "*"
 
 [requires]
 

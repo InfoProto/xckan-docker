@@ -279,6 +279,34 @@ def stat(request):
     return r
 
 
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def site_list(request):
+    sites = Site.objects.all()
+    site_list = list(map(model_to_dict, sites))
+    filtered_list = []
+    for site in site_list:
+        filtered = {}
+        for key in site.keys():
+            if key in [
+                'title',
+                'dataset_url',
+                'update_interval',
+                'full_update_interval',
+            ]:
+                filtered[key] = site[key]
+
+        filtered_list.append(filtered)
+
+    response = JsonResponse(
+        list(filtered_list),
+        safe=False,
+        json_dumps_params={'ensure_ascii': False, 'indent': 2},
+        content_type='application/json; charset=utf-8')
+
+    return response
+
+
 def validate_dataset(url):
     output = {'success': False, 'message': ''}
     with requests.Session() as session:
