@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.2
-FROM node:14-alpine
+FROM node:25-alpine
 EXPOSE 3000
 
 # Set up base platform
@@ -12,13 +12,12 @@ WORKDIR /home/node/app/sip2-ckan/
 RUN --mount=type=cache,target=/root/.npm npm install
 
 # Server configuration on build
-ARG SERVER_HOST
-ARG BACKEND_API
-ARG API_LOG
+RUN echo "SERVER_PORT: $SERVER_PORT"
 RUN echo "SERVER_HOST: $SERVER_HOST"
-RUN echo "BACKEND_API: $BACKEND_API"
-RUN echo "API_LOG: $API_LOG"
+RUN echo "NUXT_BACKEND_API_BASE_URL: ${NUXT_BACKEND_API_BASE_URL}"
+RUN echo "NUXT_PUBLIC_BACKEND_API_BASE_URL: ${NUXT_PUBLIC_BACKEND_API_BASE_URL}"
+RUN echo "NUXT_PUBLIC_FRONTEND_WEB_BASE_URL: ${NUXT_PUBLIC_FRONTEND_WEB_BASE_URL}"
 
 # Build and start
 RUN ["npm", "run", "build"]
-CMD npm start
+CMD node .output/server/index.mjs
