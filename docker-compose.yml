@@ -47,13 +47,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        SERVER_HOST: ${FRONTEND_HOSTS:-0.0.0.0}
-        BACKEND_API: ${BACKEND_API:-http://localhost:25000/api}
-        API_LOG:
     container_name: xckan-docker-frontend
     ports:
       - "23000:3000"
+    tty: true
+    environment:
+      SERVER_PORT: ${FRONTEND_PORT:-3000}
+      SERVER_HOST: ${FRONTEND_HOST:-0.0.0.0}
+      NUXT_BACKEND_API_BASE_URL: ${BACKEND_API:-http://backend:5000/api}
+      NUXT_PUBLIC_BACKEND_API_BASE_URL: ${BACKEND_API:-http://localhost:25000/api}
+      NUXT_PUBLIC_FRONTEND_WEB_BASE_URL: ${FRONTEND_WEB:-http://localhost:23000}
 
 volumes:
   solr_volume: {}

@@ -1,7 +1,14 @@
+# Port for frontend SSR server.
 SERVER_PORT=3000
+# Host IP the server accepts, '0.0.0.0' allows the access from any host.
 SERVER_HOST='0.0.0.0'
-FRONTEND_WEB='https://search.ckan.jp/'
-BACKEND_API='https://search.ckan.jp/backend/api'
-# BACKEND_AUTH=
-# GOOGLE_GTAG=
-API_LOG=
+
+# Base URL of backend API used by SSR server.
+# Configure this value when the accessing routes from SSR server and client browser are different,
+# i.e. development environment where backend container does not have a common IP accessible from SSR server and browser.
+# NUXT_BACKEND_API_BASE_URL=''
+
+# Base URL of backend API.
+NUXT_PUBLIC_BACKEND_API_BASE_URL='https://search.ckan.jp/backend/api'
+# Base URL of frontend web application.
+NUXT_PUBLIC_FRONTEND_WEB_BASE_URL='https://search.ckan.jp'
