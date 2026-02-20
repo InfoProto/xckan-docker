@@ -37,8 +37,7 @@ class BaseConfig(object):
 
     # Django settings
     DJANGO_SETTINGS = {
-        'allowed_hosts': os.environ.get(
-            'XCKAN_ALLOWED_HOSTS', '127.0.0.1'),
+        'allowed_hosts': os.environ.get('XCKAN_ALLOWED_HOSTS', '127.0.0.1').strip(),
         'databases': {
             'default': {
                 'ENGINE': os.environ.get(

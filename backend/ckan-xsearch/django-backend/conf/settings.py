@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import logging
 import os
+import re
 
 from pathlib import Path
 
@@ -35,8 +36,8 @@ DEBUG = site_config.DEBUG
 LOGGING = site_config.LOGGING_SETTINGS
 
 # ALLOWED HOSTS
-ALLOWED_HOSTS = site_config.DJANGO_SETTINGS['allowed_hosts'].split(',')
-
+ALLOWED_HOSTS = re.split(
+    r"[\s,]+", site_config.DJANGO_SETTINGS['allowed_hosts'])
 
 # Application definition
 

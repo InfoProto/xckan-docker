@@ -2,7 +2,8 @@
 # このファイルを .env にコピーし、必要な項目を編集してください。
 
 # Frontend settings
-BACKEND_API=http://xckan-dev:25000/api
+PRIVATE_BACKEND_API_URL=http://backend/api
+PUBLIC_BACKEND_API_URL=http://localhost:25000/api
 
 # Backend settings
 XCKAN_ALLOWED_HOSTS=*

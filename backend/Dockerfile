@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.2
-FROM python:3.10
+FROM python:3.12
 EXPOSE 5000
 
 # Set up base platform

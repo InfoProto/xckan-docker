@@ -1,6 +1,6 @@
 services:
   solr:
-    image: solr:9.5.0
+    image: solr:9.10.1
     container_name: xckan-docker-solr
     environment:
       VERBOSE: "no"
@@ -35,7 +35,7 @@ services:
         source: ./backend
         target: /app/
     environment:
-      XCKAN_ALLOWED_HOSTS: ${XCKAN_ALLOWED_HOSTS:-localhost}
+      XCKAN_ALLOWED_HOSTS: ${XCKAN_ALLOWED_HOSTS:-*}
       XCKAN_SYSTEM_NAME: ${XCKAN_SYSTEM_NAME}
       XCKAN_SYSTEM_FROM: ${XCKAN_SYSTEM_FROM}
       SMTP_HOST: ${SMTP_HOST}
@@ -54,9 +54,9 @@ services:
     environment:
       SERVER_PORT: ${FRONTEND_PORT:-3000}
       SERVER_HOST: ${FRONTEND_HOST:-0.0.0.0}
-      NUXT_BACKEND_API_BASE_URL: ${BACKEND_API:-http://backend:5000/api}
-      NUXT_PUBLIC_BACKEND_API_BASE_URL: ${BACKEND_API:-http://localhost:25000/api}
-      NUXT_PUBLIC_FRONTEND_WEB_BASE_URL: ${FRONTEND_WEB:-http://localhost:23000}
+      NUXT_BACKEND_API_BASE_URL: ${PRIVATE_BACKEND_API_URL:-http://backend:5000/api}
+      NUXT_PUBLIC_BACKEND_API_BASE_URL: ${PUBLIC_BACKEND_API_URL:-http://localhost:25000/api}
+      NUXT_PUBLIC_FRONTEND_WEB_BASE_URL: ${FRONTEND_WEB_URL:-http://localhost:23000}
 
 volumes:
   solr_volume: {}

@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.db.models import Q
 from django.forms.models import model_to_dict
 from django.http.response import JsonResponse
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import \
     require_http_methods, require_GET, require_POST
@@ -242,6 +242,7 @@ def package_search(request):
 
 
 @csrf_exempt
+@never_cache
 @require_http_methods(["GET", "POST"])
 def hot_tag(request):
     results = {
@@ -257,6 +258,7 @@ def hot_tag(request):
 
 
 @csrf_exempt
+@cache_page(60)
 @require_http_methods(["GET", "POST"])
 def stat(request):
     args = get_args(request)
@@ -280,12 +282,16 @@ def stat(request):
 
 
 @csrf_exempt
+@cache_page(60)
 @require_http_methods(["GET", "POST"])
 def site_list(request):
     sites = Site.objects.all()
     site_list = list(map(model_to_dict, sites))
     filtered_list = []
     for site in site_list:
+        if site["enable"] is False:
+            continue
+
         filtered = {}
         for key in site.keys():
             if key in [
